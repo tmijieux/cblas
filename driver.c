@@ -72,34 +72,57 @@ void bench_vector_ddot_incONE(void)
         perf_printmicro(&p2);
 
         free(v1); free(v2);
-        m = (int) (1.25 * m);
+        m *= 1.25;
     }
 }
 
+static void cblas_dgemm_scalar_mock(
+    const enum CBLAS_ORDER Order, const enum CBLAS_TRANSPOSE TransA,
+    const enum CBLAS_TRANSPOSE TransB, const int M, const int N,
+    const int K, const double alpha, const double *A,
+    const int lda, const double *B, const int ldb,
+    const double beta, double *C, const int ldc)
+{
+    (void) alpha;
+    (void) beta;
+    assert( Order == CblasColMajor );
+
+    if (TransA == CblasTrans && TransB == CblasNoTrans) {
+        for (int j = 0; j < N; ++j)
+            for (int i = 0; i < M; ++i) {
+                C[j*ldc+i] = 0;
+                for (int k = 0; k < K; ++k)
+                    C[j*ldc+i] += A[i*lda+k] * B[j*ldb+k];
+            }
+        return;
+    }
+    assert( "Unsupported Transpose Configuration" && 1 == 0 );
+}
+
+void cblas_dgemm_scalar() __attribute__((weak, alias("cblas_dgemm_scalar_mock")));
 
 void test_dgemm_scalar(void)
 {
     int m = 4, n = 5, k = 3;
-    double A[m*k], B[k*n], C[m*n], D[m*n];
+    double A[k*m], B[k*n], C[m*n], D[m*n];
 
-    A[0] = 1.; A[4] = 8.; A[8] = 9.;
-    A[1] = 2.; A[5] = 7.; A[9] = 10.;
-    A[2] = 3.; A[6] = 6.; A[10] = 11.;
-    A[3] = 4.; A[7] = 5.; A[11] = 12.;
+    A[0] = 1.0; A[3] = 2.0;  A[6] = 3.0; A[ 9] = 4.0;
+    A[1] = 8.0; A[4] = 7.0;  A[7] = 6.0; A[10] = 5.0;
+    A[2]  = 9.0;A[5] = 10.0; A[8] = 11.0;A[11] = 12.0;
 
-    B[0] = 11; B[3] = 12; B[6] = 13; B[9] = 14;  B[12] = 15;
-    B[1] = 21; B[4] = 22; B[7] = 23; B[10] = 24; B[13] = 25;
-    B[2] = 31; B[5] = 32; B[8] = 33; B[11] = 34; B[14] = 35;
+    B[0] = 13.0; B[3] = 18.0; B[6] = 19.0; B[ 9] = 24.0; B[12] = 25.0;
+    B[1] = 14.0; B[4] = 17.0; B[7] = 20.0; B[10] = 23.0; B[13] = 26.0;
+    B[2] = 15.0; B[5] = 16.0; B[8] = 21.0; B[11] = 22.0; B[14] = 27.0;
 
-    D[0] = 11; D[4] = 12; D[8] = 13; D[12] = 13; D[16] = 13;
-    D[1] = 21; D[5] = 22; D[9] = 23; D[13] = 13; D[17] = 13;
-    D[2] = 31; D[6] = 32; D[10]= 33; D[14] = 13; D[18] = 13;
-    D[3] = 41; D[7] = 42; D[11]= 43; D[15] = 13; D[19] = 13;
+    D[0] = 260.0; D[4] = 298.0; D[ 8] = 368.0; D[12] = 406.0; D[16] = 476.0;
+    D[1] = 274.0; D[5] = 315.0; D[ 9] = 388.0; D[13] = 429.0; D[17] = 502.0;
+    D[2] = 288.0; D[6] = 332.0; D[10] = 408.0; D[14] = 452.0; D[18] = 528.0;
+    D[3] = 302.0; D[7] = 349.0; D[11] = 428.0; D[15] = 475.0; D[19] = 554.0;
 
     cblas_dgemm_scalar(CblasColMajor, CblasTrans, CblasNoTrans,
-                       m, n, k, 0.0, A, m, B, k, 0.0, C, m);
+                       m, n, k, 0.0, A, k, B, k, 0.0, C, m);
 
-    assert( memcmp(C, D, 4*5*sizeof C[0]) == 0 );
+    assert( memcmp(C, D, m*n*sizeof C[0]) == 0 );
 }
 
 int main(int argc, char **argv)
@@ -110,9 +133,7 @@ int main(int argc, char **argv)
     test_matrix_print();
     test_matrix_allocate();
     test_matrix_identity();
-
     test_vector_ddot();
-
     test_dgemm_scalar();
 
     bench_vector_ddot_incONE();
