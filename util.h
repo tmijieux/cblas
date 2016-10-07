@@ -16,15 +16,19 @@
 
 
 double *tdp_matrix_new(int m/*rows*/, int n/*columns*/);
-void tdp_matrix_init(int m/*rows*/, int n/*columns*/, double *mat);
-void tdp_matrix_identity(int m/*row*/, int n/*column*/,
-                         double *mat, int lda/*leading dimensions*/);
+void tdp_matrix_zero(int m/*rows*/, int n/*columns*/, double *mat);
+void tdp_matrix_one(int m/*row*/, int n/*column*/,
+                    double value, double *mat, int lda/*leading dimension*/);
 void tdp_matrix_print(int m/*row*/, int n/*column*/,
-                      double *mat, int lda/*leading dimensions*/,
+                      double *mat, int lda/*leading dimension*/,
                       FILE *outstream);
+void tdp_matrix_rand(int m/*rows*/, int n/*columns*/,
+                     double *mat, double min, double max);
 
 double *tdp_vector_new(int m);
-void tdp_vector_rand(int m, double max, double *v);
+void tdp_vector_rand(int m, double min, double max, double *v);
 void tdp_vector_one(int m, double value, double *v);
+void tdp_vector_zero(int m, double *v);
+void tdp_vector_print(int m, double *v, FILE *out);
 
 #endif // TDP_UTIL_H

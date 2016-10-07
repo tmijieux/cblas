@@ -30,17 +30,23 @@ void test_matrix_allocate(void)
     free(m);
 }
 
-void test_matrix_identity(void)
+void test_matrix_one(void)
 {
     double *m = tdp_matrix_new(10, 10);
-    tdp_matrix_identity(10, 10, m, 10);
+    tdp_matrix_one(10, 10, 12.0, m, 10);
     tdp_matrix_print(10, 10, m, 10, stdout);
     free(m);
 
     m = tdp_matrix_new(2, 10);
-    tdp_matrix_identity(2, 10, m, 2);
+    tdp_matrix_one(2, 10, -42.0, m, 2);
     tdp_matrix_print(2, 10, m, 2, stdout);
     free(m);
+
+    m = tdp_matrix_new(7, 4);
+    tdp_matrix_one(7, 4, -13.0, m, 7);
+    tdp_matrix_print(7, 4, m, 7, stdout);
+    free(m);
+
 }
 
 void test_vector_ddot(void)
@@ -57,7 +63,7 @@ void bench_vector_ddot_incONE(void)
     while ( m < 1000000 ) {
         double *v1, *v2;
         v1 = tdp_vector_new(m); v2 = tdp_vector_new(m);
-        tdp_vector_rand(m, DBL_MAX, v1); tdp_vector_rand(m, 500.0, v2);
+        tdp_vector_rand(m, 42., DBL_MAX, v1); tdp_vector_rand(m, -37.0, 500.0, v2);
 
         perf_t p1, p2;
         perf(&p1);
@@ -132,7 +138,7 @@ int main(int argc, char **argv)
     srand(time(NULL) + (long)&argc);
     test_matrix_print();
     test_matrix_allocate();
-    test_matrix_identity();
+    test_matrix_one();
     test_vector_ddot();
     test_dgemm_scalar();
 
