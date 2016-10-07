@@ -1,0 +1,1 @@
+g++ test-mkl.cc -o test-mkl ${MKLROOT}/lib/intel64/libmkl_scalapack_lp64.a -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROOT}/lib/intel64/libmkl_core.a ${MKLROOT}/lib/intel64/libmkl_gnu_thread.a -Wl,--end-group ${MKLROOT}/lib/intel64/libmkl_blacs_openmpi_lp64.a -ldl -lpthread -lm -fopenmp
