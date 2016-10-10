@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include "util.h"
+#include "dgemm.h"
 #include "cblas/cblas.h"
 #include "perf/perf.h"
 
@@ -59,6 +60,7 @@ void test_vector_ddot(void)
 
 void bench_vector_ddot_incONE(void)
 {
+    printf("\n");
     int m = 50;
     while ( m < 1000000 ) {
         double *v1, *v2;
@@ -82,30 +84,33 @@ void bench_vector_ddot_incONE(void)
     }
 }
 
-static void cblas_dgemm_scalar_mock(
-    const enum CBLAS_ORDER Order, const enum CBLAS_TRANSPOSE TransA,
-    const enum CBLAS_TRANSPOSE TransB, const int M, const int N,
-    const int K, const double alpha, const double *A,
-    const int lda, const double *B, const int ldb,
-    const double beta, double *C, const int ldc)
+void bench_dgemm_scalar(void)
 {
-    (void) alpha;
-    (void) beta;
-    assert( Order == CblasColMajor );
+    printf("\n");
+    for (int m = 100; m <= 1000; m += 50) {
+        double *M1, *M2, *M3;
+        M1 = tdp_matrix_new(m, m);
+        M2 = tdp_matrix_new(m, m);
+        M3 = tdp_matrix_new(m, m);
 
-    if (TransA == CblasTrans && TransB == CblasNoTrans) {
-        for (int j = 0; j < N; ++j)
-            for (int i = 0; i < M; ++i) {
-                C[j*ldc+i] = 0;
-                for (int k = 0; k < K; ++k)
-                    C[j*ldc+i] += A[i*lda+k] * B[j*ldb+k];
-            }
-        return;
+        tdp_matrix_rand(m, m, M1, 42., DBL_MAX);
+        tdp_matrix_rand(m, m, M2, -37.0, 500.0);
+
+        perf_t p1, p2;
+        perf(&p1);
+        cblas_dgemm_scalar(CblasColMajor, CblasTrans, CblasNoTrans,
+                           m, m, m, 1.0, M1, m, M2, m, 0.0, M3, m);
+        perf(&p2);
+
+        perf_diff(&p1, &p2);
+        printf("m = %6d ", m);
+        uint64_t nb_op = 2 * m * m * m;
+        printf("Mflops = %8g | time(µs) = ", perf_mflops(&p2, nb_op));
+        perf_printmicro(&p2);
+
+        free(M1); free(M2); free(M3);
     }
-    assert( "Unsupported Transpose Configuration" && 1 == 0 );
 }
-
-void cblas_dgemm_scalar() __attribute__((weak, alias("cblas_dgemm_scalar_mock")));
 
 void test_dgemm_scalar(void)
 {
@@ -125,10 +130,12 @@ void test_dgemm_scalar(void)
     D[2] = 288.0; D[6] = 332.0; D[10] = 408.0; D[14] = 452.0; D[18] = 528.0;
     D[3] = 302.0; D[7] = 349.0; D[11] = 428.0; D[15] = 475.0; D[19] = 554.0;
 
-    cblas_dgemm_scalar(CblasColMajor, CblasTrans, CblasNoTrans,
-                       m, n, k, 0.0, A, k, B, k, 0.0, C, m);
 
-    assert( memcmp(C, D, m*n*sizeof C[0]) == 0 );
+    memset(C, 0, sizeof C);
+    cblas_dgemm_scalar(CblasColMajor, CblasTrans, CblasNoTrans,
+                       m, n, k, 1.0, A, k, B, k, 0.0, C, m);
+
+    assert( memcmp(C, D, sizeof C) == 0 );
 }
 
 int main(int argc, char **argv)
@@ -143,6 +150,7 @@ int main(int argc, char **argv)
     test_dgemm_scalar();
 
     bench_vector_ddot_incONE();
+    bench_dgemm_scalar();
 
     return EXIT_SUCCESS;
 }

@@ -17,7 +17,7 @@ int main(){
 
   // Performance d'une addition scalaire
   perf(&start);
-  c = a + b; 
+  c = a + b;
   perf(&stop);
 
   // Verification
@@ -25,8 +25,8 @@ int main(){
 
   // Performance
   perf_diff(&start, &stop);
-  performance = perf_mflops(&stop, flop); 
+  performance = perf_mflops(&stop, flop);
   printf("Mflop/s : %lf \n", performance);
- 
+
   return 0;
 }

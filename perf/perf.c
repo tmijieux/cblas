@@ -2,12 +2,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-void 
+void
 perf(perf_t * p) {
-  gettimeofday(p, NULL);  
+  gettimeofday(p, NULL);
 }
 
-void 
+void
 perf_diff(const perf_t * begin, perf_t * end) {
   end->tv_sec = end->tv_sec - begin->tv_sec;
   end->tv_usec = end->tv_usec - begin->tv_usec;
@@ -40,7 +40,7 @@ perf_mflops(const perf_t * p, const long nb_op) {
 }
 
 /*
-int 
+int
 main() {
   perf_t start;
   perf_t stop;
@@ -53,7 +53,7 @@ main() {
 
   perf_printh(&stop);
   perf_printmicro(&stop);
-   
+
   double mflops = perf_mflops(&stop, 1000000);
 
   printf("Mflops : %.4f\n",mflops);
