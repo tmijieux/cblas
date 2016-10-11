@@ -67,6 +67,7 @@ void bench_vector_ddot_incONE(void)
         v1 = tdp_vector_new(m); v2 = tdp_vector_new(m);
         tdp_vector_rand(m, 42., DBL_MAX, v1); tdp_vector_rand(m, -37.0, 500.0, v2);
 
+        tdp_cache_garbage();
         perf_t p1, p2;
         perf(&p1);
         for (int i = 0; i < NB_ITER; ++i)
@@ -96,6 +97,7 @@ void bench_dgemm_scalar(void)
         tdp_matrix_rand(m, m, M1, 42., DBL_MAX);
         tdp_matrix_rand(m, m, M2, -37.0, 500.0);
 
+        tdp_cache_garbage();
         perf_t p1, p2;
         perf(&p1);
         cblas_dgemm_scalar(CblasColMajor, CblasTrans, CblasNoTrans,

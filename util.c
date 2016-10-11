@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 #include "util.h"
 
 /**
@@ -99,4 +100,19 @@ void tdp_vector_print(int m, double *v, FILE *out)
 {
     for (int i = 0; i < m; ++i)
         fprintf(out, "%g\n", v[i]);
+}
+
+#define CACHE_SIZE 25600000
+void tdp_cache_garbage(void)
+{
+    uint64_t S = CACHE_SIZE*2;
+    uint64_t s = S;
+    double *a = malloc(S);
+    while (s > 0) {
+        int i = rand() % (S/sizeof *a);
+        int k = rand() % (S/sizeof *a);
+        a[i] = a[k];
+        s -= sizeof *a;
+    }
+    free(a);
 }
