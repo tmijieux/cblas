@@ -11,6 +11,17 @@ CFLAGS+=-O3
 LDFLAGS+=
 endif
 
+
+ifdef USE_MKL
+CFLAGS+=-DUSE_MKL=1
+EXTRA_OBJ=${MKLROOT}/lib/intel64/libmkl_scalapack_lp64.a
+LDFLAGS+= -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a \
+	${MKLROOT}/lib/intel64/libmkl_core.a ${MKLROOT}/lib/intel64/libmkl_gnu_thread.a \
+	-Wl,--end-group ${MKLROOT}/lib/intel64/libmkl_blacs_openmpi_lp64.a \
+	-ldl -lpthread -lm -fopenmp
+endif
+
+
 OBJ=$(SRC:.c=.o)
 DEP=$(SRC:.c=.d)
 
