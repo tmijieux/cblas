@@ -1,7 +1,7 @@
 #include <assert.h>
 
-#include "tdp-dgemm.h"
-#include "tdp-ddot.h"
+#include "dgemm.h"
+#include "ddot.h"
 
 #define DGEMM_CHECK_PARAMS                      \
     do {                                        \
@@ -16,10 +16,11 @@ DEFINE_DGEMM(dgemm_scalar_Fatima_Zahra)
 {
     DGEMM_CHECK_PARAMS;
 
-      for (int i=0; i<M; i++)
+    for (int i=0; i<M; i++)
 	for (int j=0; j<N; j++) {
-	  for (int k=0; k<K; k++)
-	    C[i+j*ldc]=C[i+j*ldc]+A[k+i*lda]*B[k+j*ldb];
+            C[i+j*ldc] = 0.0;
+            for (int k=0; k<K; k++)
+                C[i+j*ldc]=C[i+j*ldc]+A[k+i*lda]*B[k+j*ldb];
 	}
 }
 
@@ -71,6 +72,10 @@ DEFINE_DGEMM(dgemm_j)
 DEFINE_DGEMM(dgemm_k)
 {
     DGEMM_CHECK_PARAMS;
+
+    for (int j=0;j<N; j++)
+        for (int i=0; i<M; i++)
+            C[i+j*ldc] = 0.0;
 
     for (int k=0; k<K; k++)
         for (int j=0;j<N; j++)

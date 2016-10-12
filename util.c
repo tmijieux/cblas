@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
-#include "tdp-util.h"
+#include "util.h"
 
 /**
  * Pretty print the matrix 'mat'

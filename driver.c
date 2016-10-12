@@ -10,9 +10,9 @@
 #include "cblas/cblas.h"
 #include "perf/perf.h"
 
-#include "tdp-util.h"
-#include "tdp-ddot.h"
-#include "tdp-dgemm.h"
+#include "util.h"
+#include "ddot.h"
+#include "dgemm.h"
 
 #define NB_ITER 1000
 
@@ -106,9 +106,9 @@ void bench_dgemm(cblas_dgemm_t dgemm)
         perf(&p2);
 
         perf_diff(&p1, &p2);
-        printf("m = %6d ", m);
+        printf("m = %6d | ", m);
         uint64_t nb_op = 2 * CUBE(m);
-        printf("Mflops = %8g | time(µs) = ", perf_mflops(&p2, nb_op));
+        printf("%8g Mflops | time(µs) = ", perf_mflops(&p2, nb_op));
         perf_printmicro(&p2);
 
         free(M1); free(M2); free(M3);

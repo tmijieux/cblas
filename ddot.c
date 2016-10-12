@@ -1,5 +1,5 @@
-#include "tdp-cblas.h"
-#include "tdp-ddot.h"
+#include "cblas.h"
+#include "ddot.h"
 
 DEFINE_DDOT(ddot_basic_Thomas)
 {
