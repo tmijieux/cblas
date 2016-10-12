@@ -7,11 +7,14 @@
 #include <float.h>
 #include <string.h>
 
-#include "util.h"
-#include "test_order.h"
 #include "cblas/cblas.h"
 #include "perf/perf.h"
 
+#include "tdp-util.h"
+#include "tdp-ddot.h"
+#include "tdp-dgemm.h"
+
+#define NB_ITER 1000
 
 void test_matrix_print(void)
 {
@@ -48,50 +51,35 @@ void test_matrix_one(void)
     tdp_matrix_one(7, 4, -13.0, m, 7);
     tdp_matrix_print(7, 4, m, 7, stdout);
     free(m);
-
 }
 
-void test_vector_ddot(void)
+void test_ddot(cblas_ddot_t ddot)
 {
     double X[] = { 1, 2, 3, 4, 5, 6 };
-    assert( DEQUAL( cblas_ddot(6, X, 1, X, 1), 91.0, 0.01) );
+    assert( DEQUAL( ddot(6, X, 1, X, 1), 91.0, 0.01) );
 }
 
-void test_dgemm_order(void)
-{
-  double a[2*2] ={1.0,0.0,2.0,1.0};
-  double b[2*2] ={3.0,1.0,8.0,9.0};
-  double c[2*2] ={0.0,0.0,0.0,0.0};
-  cblas_dgemm_k(CblasColMajor,CblasTrans,CblasNoTrans,2,2,2,1,a,2,b,2,0,c,2);
-  affiche(2,2,c,2);
-  printf("\n");
-  cblas_dgemm_i(CblasColMajor,CblasTrans,CblasNoTrans,2,2,2,1,a,2,b,2,0,c,2);
-  affiche(2,2,c,2);
-  printf("\n");
-  cblas_dgemm_j(CblasColMajor,CblasTrans,CblasNoTrans,2,2,2,1,a,2,b,2,0,c,2);
-  affiche(2,2,c,2);
-}
-
-#define NB_ITER 1000
-
-void bench_vector_ddot_incONE(void)
+void bench_ddot(cblas_ddot_t ddot)
 {
     int m = 50;
     while ( m < 1000000 ) {
         double *v1, *v2;
-        v1 = tdp_vector_new(m); v2 = tdp_vector_new(m);
-        tdp_vector_rand(m, 42., DBL_MAX, v1); tdp_vector_rand(m, -37.0, 500.0, v2);
+        v1 = tdp_vector_new(m);
+        v2 = tdp_vector_new(m);
+        tdp_vector_rand(m, 42., DBL_MAX, v1);
+        tdp_vector_rand(m, -37.0, 500.0, v2);
 
+        tdp_cache_garbage();
         perf_t p1, p2;
         perf(&p1);
         for (int i = 0; i < NB_ITER; ++i)
-            cblas_ddot(m, v1, 1, v2, 1);
+            ddot(m, v1, 1, v2, 1);
         perf(&p2);
 
         perf_diff(&p1, &p2);
-        printf("m = %6d ", m);
+        printf("m = %6d | ", m);
         uint64_t nb_op = 2 * m * NB_ITER;
-        printf("Mflops = %8g | time(µs) = ", perf_mflops(&p2, nb_op));
+        printf("%10g Mflops | time(µs) = ", perf_mflops(&p2, nb_op));
         perf_printmicro(&p2);
 
         free(v1); free(v2);
@@ -99,111 +87,35 @@ void bench_vector_ddot_incONE(void)
     }
 }
 
-
-void bench_matrix_dgemm_incONE(void)
+void bench_dgemm(cblas_dgemm_t dgemm)
 {
-    int m = 50;
-    while ( m < 1000000 ) {
-      double *m1, *m2, *result;
-      m1 = tdp_matrix_new(m,m); m2 = tdp_matrix_new(m,m); result = tdp_matrix_new(m,m);
-        tdp_matrix_rand(m, m, m1, 42., DBL_MAX); tdp_matrix_rand(m, m, m2, -37.0, 500.0);
+    for (int m = 100; m <= 1000; m += 50) {
+        double *M1, *M2, *M3;
+        M1 = tdp_matrix_new(m, m);
+        M2 = tdp_matrix_new(m, m);
+        M3 = tdp_matrix_new(m, m);
 
+        tdp_matrix_rand(m, m, M1, 42., DBL_MAX);
+        tdp_matrix_rand(m, m, M2, -37.0, 500.0);
+
+        tdp_cache_garbage();
         perf_t p1, p2;
         perf(&p1);
-        for (int i = 0; i < NB_ITER; ++i)
-	  cblas_dgemm_scalar(CblasColMajor,CblasTrans,CblasNoTrans,2,2,2,1,m1,2,m2,2,0,result,2);
+        dgemm(CblasColMajor, CblasTrans, CblasNoTrans,
+              m, m, m, 1.0, M1, m, M2, m, 0.0, M3, m);
         perf(&p2);
 
         perf_diff(&p1, &p2);
         printf("m = %6d ", m);
-        uint64_t nb_op = 2 * m * NB_ITER;
+        uint64_t nb_op = 2 * CUBE(m);
         printf("Mflops = %8g | time(µs) = ", perf_mflops(&p2, nb_op));
         perf_printmicro(&p2);
 
-        free(m1); free(m2);
-        m *= 1.25;
+        free(M1); free(M2); free(M3);
     }
 }
 
-void bench_matrix_product_order(void){
-  int m=100;
-  double *m1, *m2, *result;
-  //  for(m=100; m<=1000;m++){
-  while(m<=1000){
-    m1 = tdp_matrix_new(m,m); m2 = tdp_matrix_new(m,m); result = tdp_matrix_new(m,m);
-    tdp_matrix_rand(m, m, m1, 42., DBL_MAX); tdp_matrix_rand(m, m, m2, -37.0, 500.0);
-    printf("m = %6d \n", m);
-    printf("(i,j,k) Order :\n");
-    perf_t p1, p2;
-    perf(&p1);
-    for (int i = 0; i < NB_ITER; ++i)
-      cblas_dgemm_i(CblasColMajor,CblasTrans,CblasNoTrans,
-		    m,m,m,1,m1,m,m2,m,0,result,m);
-    perf(&p2);
-
-    perf_diff(&p1, &p2);
-    //tdp_matrix_print(m,m,m1,m,stdout);
-    uint64_t nb_op = 2 * m  * NB_ITER * m*m;
-    printf("Mflops = %8g | time(µs) = ", perf_mflops(&p2, nb_op));
-    perf_printmicro(&p2);
-    printf("(j,i,k) Order :\n");
-    perf(&p1);
-    for (int i = 0; i < NB_ITER; ++i)
-      cblas_dgemm_j(CblasColMajor,CblasTrans,CblasNoTrans,
-		    m,m,m,1,m1,m,m2,m,0,result,m);
-    perf(&p2);
-
-    perf_diff(&p1, &p2);
-    //	tdp_matrix_print(m,m,m1,m,stdout);
-    nb_op = 2 * m * NB_ITER* m*m;
-    printf("Mflops = %8g | time(µs) = ", perf_mflops(&p2, nb_op));
-    perf_printmicro(&p2);
-
-    printf("(k,i,j) Order :\n");
-    perf(&p1);
-    for (int i = 0; i < NB_ITER; ++i)
-      cblas_dgemm_k(CblasColMajor,CblasTrans,CblasNoTrans,
-		    m,m,m,1,m1,m,m2,m,0,result,m);
-    perf(&p2);
-
-    perf_diff(&p1, &p2);
-    /* tdp_matrix_print(m,m,m1,m,stdout); */
-    nb_op = 2 * m * NB_ITER * m*m;
-    printf("Mflops = %8g | time(µs) = ", perf_mflops(&p2, nb_op));
-    perf_printmicro(&p2);
-	
-    free(m1); free(m2);
-    m = m*10;
-
-  }
-}
-
-static void cblas_dgemm_scalar_mock(
-    const enum CBLAS_ORDER Order, const enum CBLAS_TRANSPOSE TransA,
-    const enum CBLAS_TRANSPOSE TransB, const int M, const int N,
-    const int K, const double alpha, const double *A,
-    const int lda, const double *B, const int ldb,
-    const double beta, double *C, const int ldc)
-{
-    (void) alpha;
-    (void) beta;
-    assert( Order == CblasColMajor );
-
-    if (TransA == CblasTrans && TransB == CblasNoTrans) {
-        for (int j = 0; j < N; ++j)
-            for (int i = 0; i < M; ++i) {
-                C[j*ldc+i] = 0;
-                for (int k = 0; k < K; ++k)
-                    C[j*ldc+i] += A[i*lda+k] * B[j*ldb+k];
-            }
-        return;
-    }
-    assert( "Unsupported Transpose Configuration" && 1 == 0 );
-}
-
-void cblas_dgemm_scalar() __attribute__((weak, alias("cblas_dgemm_scalar_mock")));
-
-void test_dgemm_scalar(void)
+void test_dgemm(cblas_dgemm_t dgemm)
 {
     int m = 4, n = 5, k = 3;
     double A[k*m], B[k*n], C[m*n], D[m*n];
@@ -221,24 +133,67 @@ void test_dgemm_scalar(void)
     D[2] = 288.0; D[6] = 332.0; D[10] = 408.0; D[14] = 452.0; D[18] = 528.0;
     D[3] = 302.0; D[7] = 349.0; D[11] = 428.0; D[15] = 475.0; D[19] = 554.0;
 
-    cblas_dgemm_scalar(CblasColMajor, CblasTrans, CblasNoTrans,
-                       m, n, k, 0.0, A, k, B, k, 0.0, C, m);
+    for (int i = 0; i < m*n; ++i)
+        C[i] = (double) i;
 
-    assert( memcmp(C, D, m*n*sizeof C[0]) == 0 );
+    dgemm(CblasColMajor, CblasTrans, CblasNoTrans,
+          m, n, k, 1.0, A, k, B, k, 0.0, C, m);
+
+    assert( memcmp(C, D, sizeof C) == 0 );
 }
+
+
+#define TEST(type, symbol)                      \
+    do {                                        \
+        printf("Testing %s.\n", #symbol);       \
+        test_##type(symbol);                    \
+    }while(0)
+
+#define BENCH(type, symbol)                     \
+    do {                                        \
+        printf("\nBenching %s:\n", #symbol);    \
+        bench_##type(symbol);                   \
+    }while(0)
+
 
 int main(int argc, char **argv)
 {
-  (void) argv;
+    (void) argv;
+    srand(time(NULL) + (long)&argc);
 
-  srand(time(NULL) + (long)&argc);
-  test_matrix_print();
-  test_matrix_allocate();
-  test_matrix_one();
-  test_vector_ddot();
-  //test_dgemm_scalar(); 
-  bench_vector_ddot_incONE(); 
-  /* bench_matrix_dgemm_incONE(); */
-  bench_matrix_product_order();
-  return EXIT_SUCCESS;
+    // tests
+    test_matrix_print();
+    test_matrix_allocate();
+    test_matrix_one();
+
+    TEST(ddot, ddot_basic_Thomas);
+    TEST(ddot, ddot_basic_Fatima_Zahra);
+
+    TEST(dgemm, dgemm_scalar_Fatima_Zahra);
+    TEST(dgemm, dgemm_scalar_Thomas);
+    TEST(dgemm, dgemm_scalar2_Thomas);
+    TEST(dgemm, dgemm_i);
+    TEST(dgemm, dgemm_j);
+    TEST(dgemm, dgemm_k);
+
+    // benches -- sequentials
+    BENCH(ddot, ddot_basic_Thomas);
+    BENCH(ddot, ddot_basic_Fatima_Zahra);
+
+    BENCH(dgemm, dgemm_scalar_Fatima_Zahra);
+    BENCH(dgemm, dgemm_scalar_Thomas);
+    BENCH(dgemm, dgemm_scalar2_Thomas);
+    BENCH(dgemm, dgemm_i);
+    BENCH(dgemm, dgemm_j);
+    BENCH(dgemm, dgemm_k);
+
+
+    // benches -- parallels
+    #pragma omp parallel
+    #pragma omp once
+    {
+
+    }
+
+    return EXIT_SUCCESS;
 }

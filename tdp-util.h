@@ -14,6 +14,16 @@
 #endif
 #define DEQUAL(X_, Y_, H_) (fabs((X_) - (Y_)) < (H_))
 
+#ifdef SQUARE
+#undef SQUARE
+#endif
+#define SQUARE(X_) ((X_)*(X_))
+
+#ifdef CUBE
+#undef CUBE
+#endif
+#define CUBE(X_) ((X_)*(X_)*(X_))
+
 
 double *tdp_matrix_new(int m/*rows*/, int n/*columns*/);
 void tdp_matrix_zero(int m/*rows*/, int n/*columns*/, double *mat);
@@ -30,5 +40,6 @@ void tdp_vector_rand(int m, double min, double max, double *v);
 void tdp_vector_one(int m, double value, double *v);
 void tdp_vector_zero(int m, double *v);
 void tdp_vector_print(int m, double *v, FILE *out);
+void tdp_cache_garbage(void);
 
 #endif // TDP_UTIL_H

@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
-#include "util.h"
+#include <stdint.h>
+#include "tdp-util.h"
 
 /**
  * Pretty print the matrix 'mat'
@@ -58,6 +59,29 @@ void tdp_matrix_one(int m/*rows*/, int n/*columns*/,
 }
 
 /**
+ * Set the matrix' main diagonal elements to 'value', and other to 0.0
+ */
+void tdp_matrix_3one(int m/*rows*/, int n/*columns*/,
+                     double v1, double v2,
+                     double *mat, int lda/*leading dimension*/)
+{
+    tdp_matrix_zero(m, n, mat);
+    int M = min(m, n);
+
+
+    mat[0] = v1;
+    mat[1] = v2;
+    for (int j = 1; j < M-1; ++j) {
+        mat[j*lda+j-1] = v2;
+        mat[j*lda+j] = v1;
+        mat[j*lda+j+1] = v2;
+    }
+    mat[(M-1)*lda+(M-2)] = v2;
+    mat[(M-1)*lda+(M-1)] = v1;
+}
+
+
+/**
  * Return new zero'd vector
  */
 double *tdp_vector_new(int m)
@@ -101,11 +125,17 @@ void tdp_vector_print(int m, double *v, FILE *out)
         fprintf(out, "%g\n", v[i]);
 }
 
-
-/* Calculates the Submatrix */
-void tdp_submatrix(double* A, int lda, int line, int column, int m, int n, double* B){
-  for( int i=0; i<m; i++)
-    for(int j=0; j<n; j++)
-      B[i+lda*j]=A[i+line+lda*(j+column)];
-
+#define CACHE_SIZE 25600000
+void tdp_cache_garbage(void)
+{
+    uint64_t S = CACHE_SIZE*2;
+    uint64_t s = S;
+    double *a = malloc(S);
+    while (s > 0) {
+        int i = rand() % (S/sizeof *a);
+        int k = rand() % (S/sizeof *a);
+        a[i] = a[k];
+        s -= sizeof *a;
+    }
+    free(a);
 }

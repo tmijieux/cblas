@@ -4,10 +4,10 @@
 
 typedef struct timeval perf_t;
 
-void 
+void
 perf(perf_t * p);
 
-void 
+void
 perf_diff(const perf_t * begin, perf_t * end);
 
 void
