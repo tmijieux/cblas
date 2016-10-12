@@ -100,3 +100,12 @@ void tdp_vector_print(int m, double *v, FILE *out)
     for (int i = 0; i < m; ++i)
         fprintf(out, "%g\n", v[i]);
 }
+
+
+/* Calculates the Submatrix */
+void tdp_submatrix(double* A, int lda, int line, int column, int m, int n, double* B){
+  for( int i=0; i<m; i++)
+    for(int j=0; j<n; j++)
+      B[i+lda*j]=A[i+line+lda*(j+column)];
+
+}

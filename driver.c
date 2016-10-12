@@ -8,8 +8,10 @@
 #include <string.h>
 
 #include "util.h"
+#include "test_order.h"
 #include "cblas/cblas.h"
 #include "perf/perf.h"
+
 
 void test_matrix_print(void)
 {
@@ -55,6 +57,21 @@ void test_vector_ddot(void)
     assert( DEQUAL( cblas_ddot(6, X, 1, X, 1), 91.0, 0.01) );
 }
 
+void test_dgemm_order(void)
+{
+  double a[2*2] ={1.0,0.0,2.0,1.0};
+  double b[2*2] ={3.0,1.0,8.0,9.0};
+  double c[2*2] ={0.0,0.0,0.0,0.0};
+  cblas_dgemm_k(CblasColMajor,CblasTrans,CblasNoTrans,2,2,2,1,a,2,b,2,0,c,2);
+  affiche(2,2,c,2);
+  printf("\n");
+  cblas_dgemm_i(CblasColMajor,CblasTrans,CblasNoTrans,2,2,2,1,a,2,b,2,0,c,2);
+  affiche(2,2,c,2);
+  printf("\n");
+  cblas_dgemm_j(CblasColMajor,CblasTrans,CblasNoTrans,2,2,2,1,a,2,b,2,0,c,2);
+  affiche(2,2,c,2);
+}
+
 #define NB_ITER 1000
 
 void bench_vector_ddot_incONE(void)
@@ -80,6 +97,85 @@ void bench_vector_ddot_incONE(void)
         free(v1); free(v2);
         m *= 1.25;
     }
+}
+
+
+void bench_matrix_dgemm_incONE(void)
+{
+    int m = 50;
+    while ( m < 1000000 ) {
+      double *m1, *m2, *result;
+      m1 = tdp_matrix_new(m,m); m2 = tdp_matrix_new(m,m); result = tdp_matrix_new(m,m);
+        tdp_matrix_rand(m, m, m1, 42., DBL_MAX); tdp_matrix_rand(m, m, m2, -37.0, 500.0);
+
+        perf_t p1, p2;
+        perf(&p1);
+        for (int i = 0; i < NB_ITER; ++i)
+	  cblas_dgemm_scalar(CblasColMajor,CblasTrans,CblasNoTrans,2,2,2,1,m1,2,m2,2,0,result,2);
+        perf(&p2);
+
+        perf_diff(&p1, &p2);
+        printf("m = %6d ", m);
+        uint64_t nb_op = 2 * m * NB_ITER;
+        printf("Mflops = %8g | time(µs) = ", perf_mflops(&p2, nb_op));
+        perf_printmicro(&p2);
+
+        free(m1); free(m2);
+        m *= 1.25;
+    }
+}
+
+void bench_matrix_product_order(void){
+  int m=100;
+  double *m1, *m2, *result;
+  //  for(m=100; m<=1000;m++){
+  while(m<=1000){
+    m1 = tdp_matrix_new(m,m); m2 = tdp_matrix_new(m,m); result = tdp_matrix_new(m,m);
+    tdp_matrix_rand(m, m, m1, 42., DBL_MAX); tdp_matrix_rand(m, m, m2, -37.0, 500.0);
+    printf("m = %6d \n", m);
+    printf("(i,j,k) Order :\n");
+    perf_t p1, p2;
+    perf(&p1);
+    for (int i = 0; i < NB_ITER; ++i)
+      cblas_dgemm_i(CblasColMajor,CblasTrans,CblasNoTrans,
+		    m,m,m,1,m1,m,m2,m,0,result,m);
+    perf(&p2);
+
+    perf_diff(&p1, &p2);
+    //tdp_matrix_print(m,m,m1,m,stdout);
+    uint64_t nb_op = 2 * m  * NB_ITER * m*m;
+    printf("Mflops = %8g | time(µs) = ", perf_mflops(&p2, nb_op));
+    perf_printmicro(&p2);
+    printf("(j,i,k) Order :\n");
+    perf(&p1);
+    for (int i = 0; i < NB_ITER; ++i)
+      cblas_dgemm_j(CblasColMajor,CblasTrans,CblasNoTrans,
+		    m,m,m,1,m1,m,m2,m,0,result,m);
+    perf(&p2);
+
+    perf_diff(&p1, &p2);
+    //	tdp_matrix_print(m,m,m1,m,stdout);
+    nb_op = 2 * m * NB_ITER* m*m;
+    printf("Mflops = %8g | time(µs) = ", perf_mflops(&p2, nb_op));
+    perf_printmicro(&p2);
+
+    printf("(k,i,j) Order :\n");
+    perf(&p1);
+    for (int i = 0; i < NB_ITER; ++i)
+      cblas_dgemm_k(CblasColMajor,CblasTrans,CblasNoTrans,
+		    m,m,m,1,m1,m,m2,m,0,result,m);
+    perf(&p2);
+
+    perf_diff(&p1, &p2);
+    /* tdp_matrix_print(m,m,m1,m,stdout); */
+    nb_op = 2 * m * NB_ITER * m*m;
+    printf("Mflops = %8g | time(µs) = ", perf_mflops(&p2, nb_op));
+    perf_printmicro(&p2);
+	
+    free(m1); free(m2);
+    m = m*10;
+
+  }
 }
 
 static void cblas_dgemm_scalar_mock(
@@ -133,16 +229,16 @@ void test_dgemm_scalar(void)
 
 int main(int argc, char **argv)
 {
-    (void) argv;
+  (void) argv;
 
-    srand(time(NULL) + (long)&argc);
-    test_matrix_print();
-    test_matrix_allocate();
-    test_matrix_one();
-    test_vector_ddot();
-    test_dgemm_scalar();
-
-    bench_vector_ddot_incONE();
-
-    return EXIT_SUCCESS;
+  srand(time(NULL) + (long)&argc);
+  test_matrix_print();
+  test_matrix_allocate();
+  test_matrix_one();
+  test_vector_ddot();
+  //test_dgemm_scalar(); 
+  bench_vector_ddot_incONE(); 
+  /* bench_matrix_dgemm_incONE(); */
+  bench_matrix_product_order();
+  return EXIT_SUCCESS;
 }
