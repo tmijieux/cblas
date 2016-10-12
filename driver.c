@@ -176,6 +176,11 @@ int main(int argc, char **argv)
     TEST(dgemm, dgemm_j);
     TEST(dgemm, dgemm_k);
 
+    #ifdef USE_MKL
+    TEST(ddot, cblas_ddot);
+    TEST(dgemm, cblas_dgemm);
+    #endif
+
     // benches -- sequentials
     BENCH(ddot, ddot_basic_Thomas);
     BENCH(ddot, ddot_basic_Fatima_Zahra);
@@ -187,12 +192,17 @@ int main(int argc, char **argv)
     BENCH(dgemm, dgemm_j);
     BENCH(dgemm, dgemm_k);
 
+    #ifdef USE_MKL
+    BENCH(ddot, cblas_ddot);
+    BENCH(dgemm, cblas_dgemm);
+    #endif
+
+
 
     // benches -- parallels
     #pragma omp parallel
     #pragma omp once
     {
-
     }
 
     return EXIT_SUCCESS;
