@@ -59,6 +59,29 @@ void tdp_matrix_one(int m/*rows*/, int n/*columns*/,
 }
 
 /**
+ * Set the matrix' main diagonal elements to 'value', and other to 0.0
+ */
+void tdp_matrix_3one(int m/*rows*/, int n/*columns*/,
+                     double v1, double v2,
+                     double *mat, int lda/*leading dimension*/)
+{
+    tdp_matrix_zero(m, n, mat);
+    int M = min(m, n);
+
+
+    mat[0] = v1;
+    mat[1] = v2;
+    for (int j = 1; j < M-1; ++j) {
+        mat[j*lda+j-1] = v2
+        mat[j*lda+j] = v1;
+        mat[j*lda+j+1] = v2;
+    }
+    mat[(M-1)*lda+(M-2)] = v2;
+    mat[(M-1)*lda+(M-1)] = v1;
+}
+
+
+/**
  * Return new zero'd vector
  */
 double *tdp_vector_new(int m)
