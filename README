@@ -1,0 +1,3 @@
+to use "load_modules.sh" script
+run ". load_modules" (DOT SPACE load_modules)
+or "source load_modules"
