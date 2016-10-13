@@ -1,6 +1,8 @@
 #ifndef PERF_H
 #define PERF_H
+
 #include <sys/time.h>
+#include <stdint.h>
 
 typedef struct timeval perf_t;
 
@@ -17,6 +19,6 @@ void
 perf_printmicro(const perf_t * p);
 
 double
-perf_mflops(const perf_t * p, const long nb_op);
+perf_mflops(const perf_t * p, const uint64_t nb_op);
 
 #endif

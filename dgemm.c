@@ -72,6 +72,9 @@ DEFINE_DGEMM(dgemm_j)
 DEFINE_DGEMM(dgemm_k)
 {
     DGEMM_CHECK_PARAMS;
+    for (int j=0; j<N; j++)
+        for (int i=0; i<M; i++)
+            C[i+j*ldc]=0.0;
 
     for (int j=0;j<N; j++)
         for (int i=0; i<M; i++)

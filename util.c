@@ -1,6 +1,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <malloc.h>
+#include <assert.h>
+
 #include "util.h"
 
 /**
@@ -24,8 +27,11 @@ void tdp_matrix_print(int m/*rows*/, int n/*columns*/,
  */
 double *tdp_matrix_new(int m/*rows*/, int n/*columns*/)
 {
-    double d;
-    return calloc(m*n, sizeof d);
+    double *d;
+    d = memalign(32, m*n*sizeof*d);
+    memset(d, 0, m*n*sizeof*d);
+    assert( ((long)d & 31)  == 0 );
+    return d;
 }
 
 /**
@@ -86,8 +92,12 @@ void tdp_matrix_3one(int m/*rows*/, int n/*columns*/,
  */
 double *tdp_vector_new(int m)
 {
-    double d;
-    return calloc(m, sizeof d);
+    double *d;
+    d = memalign(32, m*sizeof*d);
+    assert( ((long)d & 31)  == 0 );
+
+    memset(d, 0, m*sizeof*d);
+    return d;
 }
 
 /**
@@ -130,7 +140,7 @@ void tdp_cache_garbage(void)
 {
     uint64_t S = CACHE_SIZE*2;
     uint64_t s = S;
-    double *a = malloc(S);
+    double *a = memalign(32, S);
     while (s > 0) {
         int i = rand() % (S/sizeof *a);
         int k = rand() % (S/sizeof *a);

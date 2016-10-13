@@ -2,11 +2,13 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <assert.h>
+#include <malloc.h>
 #include <time.h>
 #include <limits.h>
 #include <float.h>
 #include <string.h>
 
+#include "cblas.h"
 #include "cblas/cblas.h"
 #include "perf/perf.h"
 
@@ -18,7 +20,7 @@
 
 void test_matrix_print(void)
 {
-    double M[4 * 6];
+    double M[4 * 6] ALIGNED(32);
     M[0] = 11; M[4] = 12; M[8] = 13;  M[12] = 14; M[16] = 15; M[20] = 16;
     M[1] = 21; M[5] = 22; M[9] = 23;  M[13] = 24; M[17] = 25; M[21] = 26;
     M[2] = 31; M[6] = 32; M[10] = 33; M[14] = 34; M[18] = 35; M[22] = 36;
@@ -55,8 +57,16 @@ void test_matrix_one(void)
 
 void test_ddot(cblas_ddot_t ddot)
 {
-    double X[] = { 1, 2, 3, 4, 5, 6 };
+    double X[] ALIGNED(32) = { 1, 2, 3, 4, 5, 6 };
     assert( DEQUAL( ddot(6, X, 1, X, 1), 91.0, 0.01) );
+
+    double *Y = memalign(32, sizeof*Y*100);
+    assert( ((long)Y & 31)  == 0 );
+
+    for (int i = 0; i < 100; ++i)
+        Y[i] = i+1.0;
+    assert( DEQUAL( ddot(100, Y, 1, Y, 1), 338350, 0.01) );
+    free(Y);
 }
 
 void bench_ddot(cblas_ddot_t ddot)
@@ -118,7 +128,10 @@ void bench_dgemm(cblas_dgemm_t dgemm)
 void test_dgemm(cblas_dgemm_t dgemm)
 {
     int m = 4, n = 5, k = 3;
-    double A[k*m], B[k*n], C[m*n], D[m*n];
+    double A[k*m] ALIGNED(32);
+    double B[k*n] ALIGNED(32);
+    double C[m*n] ALIGNED(32);
+    double D[m*n] ALIGNED(32);
 
     A[0] = 1.0; A[3] = 2.0;  A[6] = 3.0; A[ 9] = 4.0;
     A[1] = 8.0; A[4] = 7.0;  A[7] = 6.0; A[10] = 5.0;
@@ -168,6 +181,8 @@ int main(int argc, char **argv)
 
     TEST(ddot, ddot_basic_Thomas);
     TEST(ddot, ddot_basic_Fatima_Zahra);
+    TEST(ddot, ddot_avx_256_Thomas);
+    TEST(ddot, ddot_avx_256_fma_Thomas);
 
     TEST(dgemm, dgemm_scalar_Fatima_Zahra);
     TEST(dgemm, dgemm_scalar_Thomas);
@@ -176,12 +191,16 @@ int main(int argc, char **argv)
     TEST(dgemm, dgemm_j);
     TEST(dgemm, dgemm_k);
 
+
+
     #ifdef USE_MKL
     TEST(ddot, cblas_ddot);
     TEST(dgemm, cblas_dgemm);
     #endif
 
     // benches -- sequentials
+    BENCH(ddot, ddot_avx_256_fma_Thomas);
+    BENCH(ddot, ddot_avx_256_Thomas);
     BENCH(ddot, ddot_basic_Thomas);
     BENCH(ddot, ddot_basic_Fatima_Zahra);
 
@@ -197,11 +216,9 @@ int main(int argc, char **argv)
     BENCH(dgemm, cblas_dgemm);
     #endif
 
-
-
     // benches -- parallels
     #pragma omp parallel
-    #pragma omp once
+    #pragma omp single
     {
     }
 
