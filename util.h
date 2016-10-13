@@ -44,6 +44,7 @@ void tdp_vector_rand(int m, double min, double max, double *v);
 void tdp_vector_one(int m, double value, double *v);
 void tdp_vector_zero(int m, double *v);
 void tdp_vector_print(int m, double *v, FILE *out);
+void tdp_print_cache_size(void);
 void tdp_cache_garbage(void);
 
 #endif // TDP_UTIL_H

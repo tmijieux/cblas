@@ -186,5 +186,4 @@ void tdp_print_cache_size(void)
                   * (ecx + 1));
     printf("L3 cache_size %ldK\n", cache_size/1024);
 
-    return cache_size;
 }

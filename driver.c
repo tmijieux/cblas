@@ -205,6 +205,11 @@ static void benches(void)
     BENCH(ddot, ddot_avx_256_fma_Thomas);
     #endif
 
+    #ifdef USE_MKL
+    BENCH(ddot, cblas_ddot);
+    BENCH(dgemm, cblas_dgemm);
+    #endif
+
     BENCH(ddot, ddot_basic_Thomas);
     BENCH(ddot, ddot_basic_Fatima_Zahra);
 
@@ -214,11 +219,6 @@ static void benches(void)
     BENCH(dgemm, dgemm_i);
     BENCH(dgemm, dgemm_j);
     BENCH(dgemm, dgemm_k);
-
-    #ifdef USE_MKL
-    BENCH(ddot, cblas_ddot);
-    BENCH(dgemm, cblas_dgemm);
-    #endif
 
     // benches -- parallels
     #pragma omp parallel
@@ -232,7 +232,7 @@ int main(int argc, char **argv)
     (void) argv;
     srand(time(NULL) + (long)&argc);
 
-    tdp_get_cache_size();
+    tdp_print_cache_size();
     tests();
     benches();
 
