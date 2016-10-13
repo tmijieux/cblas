@@ -47,8 +47,7 @@ DEFINE_DDOT(ddot_avx_256_Thomas)
 
 DEFINE_DDOT(ddot_avx_256_fma_Thomas)
 {
-    assert ( __builtin_cpu_supports("avx") );
-    assert ( __builtin_cpu_supports("fma") );
+    #ifdef __FMA__
     assert ( ((long)X & 31) == 0 );
     assert ( ((long)Y & 31) == 0 );
 
@@ -71,6 +70,10 @@ DEFINE_DDOT(ddot_avx_256_fma_Thomas)
 
     double *f = (double*)&c;
     return f[0]+f[1]+f[2]+f[3]+s;
+    #else
+    fprintf(stderr, "FMA not supported!! using fallback\n");
+    return ddot_basic_Thomas(DDOT_PARAMS);
+    #endif
 }
 
 DEFINE_DDOT(ddot_basic_Fatima_Zahra)

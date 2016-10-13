@@ -1,6 +1,6 @@
 TARGET=./test_driver
 SRC=$(wildcard *.c) perf/perf.c
-CFLAGS+=-Wall -Wextra -std=gnu99 -fopenmp -mavx -mfma
+CFLAGS+=-Wall -Wextra -std=gnu99 -fopenmp -march=native
 LDFLAGS+=
 
 ifdef DEBUG

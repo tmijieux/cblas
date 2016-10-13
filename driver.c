@@ -169,20 +169,17 @@ void test_dgemm(cblas_dgemm_t dgemm)
     }while(0)
 
 
-int main(int argc, char **argv)
+static void tests(void)
 {
-    (void) argv;
-    srand(time(NULL) + (long)&argc);
-
-    // tests
     test_matrix_print();
     test_matrix_allocate();
     test_matrix_one();
 
+
     TEST(ddot, ddot_basic_Thomas);
     TEST(ddot, ddot_basic_Fatima_Zahra);
     TEST(ddot, ddot_avx_256_Thomas);
-    TEST(ddot, ddot_avx_256_fma_Thomas);
+
 
     TEST(dgemm, dgemm_scalar_Fatima_Zahra);
     TEST(dgemm, dgemm_scalar_Thomas);
@@ -191,16 +188,23 @@ int main(int argc, char **argv)
     TEST(dgemm, dgemm_j);
     TEST(dgemm, dgemm_k);
 
-
+    #ifdef __FMA__
+    TEST(ddot, ddot_avx_256_fma_Thomas);
+    #endif
 
     #ifdef USE_MKL
     TEST(ddot, cblas_ddot);
     TEST(dgemm, cblas_dgemm);
     #endif
+}
 
-    // benches -- sequentials
-    BENCH(ddot, ddot_avx_256_fma_Thomas);
+static void benches(void)
+{
     BENCH(ddot, ddot_avx_256_Thomas);
+    #ifdef __FMA__
+    BENCH(ddot, ddot_avx_256_fma_Thomas);
+    #endif
+
     BENCH(ddot, ddot_basic_Thomas);
     BENCH(ddot, ddot_basic_Fatima_Zahra);
 
@@ -221,6 +225,16 @@ int main(int argc, char **argv)
     #pragma omp single
     {
     }
+}
+
+int main(int argc, char **argv)
+{
+    (void) argv;
+    srand(time(NULL) + (long)&argc);
+
+    tdp_get_cache_size();
+    tests();
+    benches();
 
     return EXIT_SUCCESS;
 }

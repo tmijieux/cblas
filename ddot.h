@@ -12,6 +12,15 @@
 
 typedef DEFINE_DDOT((*cblas_ddot_t));
 
+#define DDOT_UNUSED_PARAMS                      \
+    do {                                        \
+        (void) N;                               \
+        (void) X; (void) incX;                  \
+        (void) Y; (void) incY;                  \
+    }while(0)
+
+#define DDOT_PARAMS  N, X, incX, Y, incY
+
 
 DECLARE_DDOT(ddot_basic_Thomas);
 DECLARE_DDOT(ddot_basic_Fatima_Zahra);
