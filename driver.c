@@ -155,6 +155,57 @@ void test_dgemm(cblas_dgemm_t dgemm)
     assert( memcmp(C, D, sizeof C) == 0 );
 }
 
+void test_square_dgemm(cblas_dgemm_t dgemm)
+{
+   int m = 3, n = 3, k = 3;
+    double A[k*m] ALIGNED(32);
+    double B[k*n] ALIGNED(32);
+    double C[m*n] ALIGNED(32);
+    double D[m*n] ALIGNED(32);
+
+    A[0] = 1.0; A[3] = 2.0;  A[6] = 3.0;
+    A[1] = 8.0; A[4] = 7.0;  A[7] = 6.0;
+    A[2]  = 9.0;A[5] = 10.0; A[8] = 11.0;
+
+    B[0] = 13.0; B[3] = 18.0; B[6] = 19.0;
+    B[1] = 14.0; B[4] = 17.0; B[7] = 20.0;
+    B[2] = 15.0; B[5] = 16.0; B[8] = 21.0;
+
+    D[0] = 260.0; D[3] = 298.0; D[ 6] = 368.0;
+    D[1] = 274.0; D[4] = 315.0; D[ 7] = 388.0;
+    D[2] = 288.0; D[5] = 332.0; D[ 8] = 408.0;
+
+    for (int i = 0; i < m*n; ++i)
+        C[i] = (double) i;
+
+    dgemm(CblasColMajor, CblasTrans, CblasNoTrans,
+          m, n, k, 1.0, A, k, B, k, 0.0, C, m);
+    tdp_matrix_print(n,m,C,n,stdout);
+    assert( memcmp(C, D, sizeof C) == 0 );
+}
+
+
+void test_big_square_dgemm(cblas_dgemm_t dgemm)
+{
+   int m = 35, n = 35, k = 35;
+   double *A = tdp_matrix_new(m, n);
+   double *B = tdp_matrix_new(m, n);
+   double *C = tdp_matrix_new(m, n);
+   double *D = tdp_matrix_new(m, n);
+
+   tdp_matrix_one(m, n, 2.0, A, m);
+   tdp_matrix_fill(m, n, 42.0, B, m);
+   tdp_matrix_fill(m, n, 84.0, D, m);
+
+    for (int i = 0; i < m*n; ++i)
+        C[i] = (double) i;
+
+    dgemm(CblasColMajor, CblasTrans, CblasNoTrans,
+          m, n, k, 1.0, A, k, B, k, 0.0, C, m);
+    tdp_matrix_print(n,m,C,n,stdout);
+    assert( memcmp(C, D, m*n*sizeof C[0]) == 0 );
+}
+
 #define TEST(type, symbol)                      \
     do {                                        \
         printf("Testing %s.\n", #symbol);       \
@@ -189,6 +240,8 @@ static void tests(void)
     TEST(dgemm, dgemm_j);
     TEST(dgemm, dgemm_k);
     TEST(dgemm, dgemm_fast_OMP);
+    //TEST(square_dgemm, dgemm_block);
+    TEST(big_square_dgemm, dgemm_block);
 
     #ifdef USE_MKL
     TEST(ddot, cblas_ddot);

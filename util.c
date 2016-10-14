@@ -16,7 +16,7 @@ void tdp_matrix_print(int m/*rows*/, int n/*columns*/,
 
     for (int i = 0; i < m; ++i) {
         for (int j = 0; j < n; ++j)
-            fprintf(out, "%g ", mat[j*lda+i]);
+            fprintf(out, "%3g ", mat[j*lda+i]);
         fprintf(out, "\n");
     }
     fprintf(out, "\n");
@@ -62,6 +62,17 @@ void tdp_matrix_one(int m/*rows*/, int n/*columns*/,
     int M = min(m, n);
     for (int j = 0; j < M; ++j)
         mat[j*lda+j] = value;
+}
+
+
+/**
+ * Set the matrix' main elements to 'value'
+ */
+void tdp_matrix_fill(int m/*rows*/, int n/*columns*/,
+                    double value, double *mat, int lda/*leading dimension*/)
+{
+    for (int j = 0; j < m*n; ++j)
+        mat[j] = value;
 }
 
 /**

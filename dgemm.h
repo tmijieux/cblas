@@ -28,5 +28,5 @@ DECLARE_DGEMM(dgemm_k);
 DECLARE_DGEMM(dgemm_OMP);
 DECLARE_DGEMM(dgemm_fast_sequential);
 DECLARE_DGEMM(dgemm_fast_OMP);
-
+DECLARE_DGEMM(dgemm_block);
 #endif // TDP_GEMM_H

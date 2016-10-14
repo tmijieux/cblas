@@ -33,6 +33,9 @@ double *tdp_matrix_new(int m/*rows*/, int n/*columns*/);
 void tdp_matrix_zero(int m/*rows*/, int n/*columns*/, double *mat);
 void tdp_matrix_one(int m/*row*/, int n/*column*/,
                     double value, double *mat, int lda/*leading dimension*/);
+void tdp_matrix_fill(int m/*row*/, int n/*column*/,
+                    double value, double *mat, int lda/*leading dimension*/);
+
 void tdp_matrix_print(int m/*row*/, int n/*column*/,
                       double *mat, int lda/*leading dimension*/,
                       FILE *outstream);
