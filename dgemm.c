@@ -45,6 +45,32 @@ DEFINE_DGEMM(dgemm_scalar2_Thomas)
             C[j*ldc+i] = ddot_basic_Thomas(K, A+i*lda, 1, B+j*ldb, 1);
 }
 
+DEFINE_DGEMM(dgemm_fast_sequential)
+{
+    DGEMM_CHECK_PARAMS;
+
+    for (int j = 0; j < N; ++j)
+        for (int i = 0; i < M; ++i)
+            C[j*ldc+i] =
+                ((((long)(A+i*lda) & 31) == 0) && (((long)(B+j*ldb) & 31) == 0))
+                ? ddot_avx_256(K, A+i*lda, 1, B+j*ldb, 1)
+                : ddot_avxU_256(K, A+i*lda, 1, B+j*ldb, 1);
+}
+
+
+DEFINE_DGEMM(dgemm_fast_OMP)
+{
+    DGEMM_CHECK_PARAMS;
+
+    #pragma omp parallel for schedule(static) collapse(2)
+    for (int j = 0; j < N; ++j)
+        for (int i = 0; i < M; ++i)
+            C[j*ldc+i] =
+                ((((long)(A+i*lda) & 31) == 0) && (((long)(B+j*ldb) & 31) == 0))
+                ? ddot_avx_256(K, A+i*lda, 1, B+j*ldb, 1)
+                : ddot_avxU_256(K, A+i*lda, 1, B+j*ldb, 1);
+}
+
 DEFINE_DGEMM(dgemm_i)
 {
     DGEMM_CHECK_PARAMS;

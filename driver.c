@@ -155,7 +155,6 @@ void test_dgemm(cblas_dgemm_t dgemm)
     assert( memcmp(C, D, sizeof C) == 0 );
 }
 
-
 #define TEST(type, symbol)                      \
     do {                                        \
         printf("Testing %s.\n", #symbol);       \
@@ -178,8 +177,10 @@ static void tests(void)
 
     TEST(ddot, ddot_basic_Thomas);
     TEST(ddot, ddot_basic_Fatima_Zahra);
-    TEST(ddot, ddot_avx_256_Thomas);
-
+    TEST(ddot, ddot_avx_256);
+    #ifdef __FMA__
+    TEST(ddot, ddot_avx_256_fma);
+    #endif
 
     TEST(dgemm, dgemm_scalar_Fatima_Zahra);
     TEST(dgemm, dgemm_scalar_Thomas);
@@ -187,10 +188,7 @@ static void tests(void)
     TEST(dgemm, dgemm_i);
     TEST(dgemm, dgemm_j);
     TEST(dgemm, dgemm_k);
-
-    #ifdef __FMA__
-    TEST(ddot, ddot_avx_256_fma_Thomas);
-    #endif
+    TEST(dgemm, dgemm_fast_OMP);
 
     #ifdef USE_MKL
     TEST(ddot, cblas_ddot);
@@ -200,14 +198,16 @@ static void tests(void)
 
 static void benches(void)
 {
-    BENCH(ddot, ddot_avx_256_Thomas);
-    #ifdef __FMA__
-    BENCH(ddot, ddot_avx_256_fma_Thomas);
+    BENCH(dgemm, dgemm_fast_OMP);
+    BENCH(dgemm, dgemm_fast_sequential);
+    #ifdef USE_MKL
+    BENCH(dgemm, cblas_dgemm);
+    BENCH(ddot, cblas_ddot);
     #endif
 
-    #ifdef USE_MKL
-    BENCH(ddot, cblas_ddot);
-    BENCH(dgemm, cblas_dgemm);
+    BENCH(ddot, ddot_avx_256);
+    #ifdef __FMA__
+    BENCH(ddot, ddot_avx_256_fma);
     #endif
 
     BENCH(ddot, ddot_basic_Thomas);
@@ -219,12 +219,6 @@ static void benches(void)
     BENCH(dgemm, dgemm_i);
     BENCH(dgemm, dgemm_j);
     BENCH(dgemm, dgemm_k);
-
-    // benches -- parallels
-    #pragma omp parallel
-    #pragma omp single
-    {
-    }
 }
 
 int main(int argc, char **argv)

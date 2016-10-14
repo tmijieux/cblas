@@ -24,5 +24,7 @@ DECLARE_DGEMM(dgemm_scalar2_Thomas);
 DECLARE_DGEMM(dgemm_i);
 DECLARE_DGEMM(dgemm_j);
 DECLARE_DGEMM(dgemm_k);
+DECLARE_DGEMM(dgemm_fast_sequential);
+DECLARE_DGEMM(dgemm_fast_OMP);
 
 #endif // TDP_GEMM_H

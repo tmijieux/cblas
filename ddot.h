@@ -24,7 +24,9 @@ typedef DEFINE_DDOT((*cblas_ddot_t));
 
 DECLARE_DDOT(ddot_basic_Thomas);
 DECLARE_DDOT(ddot_basic_Fatima_Zahra);
-DECLARE_DDOT(ddot_avx_256_Thomas);
-DECLARE_DDOT(ddot_avx_256_fma_Thomas);
+DECLARE_DDOT(ddot_avx_256);
+DECLARE_DDOT(ddot_avxU_256); // unaligned load
+
+DECLARE_DDOT(ddot_avx_256_fma);
 
 #endif // TDP_DDOT_H

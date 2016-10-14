@@ -158,32 +158,26 @@ void tdp_cache_garbage(void)
              : "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx)       \
              : "a"(id), "b"(0), "c"(v), "d"(0))
 
-#define b(val, base, end) ((val << (__WORDSIZE-end-1)) >> (__WORDSIZE-end+base-1))
+#define b(val, base, end) \
+    ((val << (__WORDSIZE-end-1)) >> (__WORDSIZE-end+base-1))
+
+#define GETCACHESIZE()                   \
+    (((b(ebx, 22, 31) + 1)               \
+     * ( b(ebx, 12, 21) + 1)             \
+     * (b(ebx, 0, 11) + 1)               \
+     * (ecx + 1)) / 1024)
+
 
 void tdp_print_cache_size(void)
 {
     uint64_t eax, ebx, ecx, edx;
-    uint64_t cache_size;
 
     cpuid(4, 1);
-    cache_size = ((b(ebx, 22, 31) + 1)
-                  * ( b(ebx, 12, 21) + 1)
-                  * (b(ebx, 0, 11) + 1)
-                  * (ecx + 1));
-    printf("L1 cache_size %ldK\n", cache_size/1024);
+    printf("L1 cache_size %ldK\n", GETCACHESIZE());
 
     cpuid(4, 2);
-    cache_size = ((b(ebx, 22, 31) + 1)
-                  * ( b(ebx, 12, 21) + 1)
-                  * (b(ebx, 0, 11) + 1)
-                  * (ecx + 1));
-    printf("L2 cache_size %ldK\n", cache_size/1024);
+    printf("L2 cache_size %ldK\n", GETCACHESIZE());
 
     cpuid(4, 3);
-    cache_size = ((b(ebx, 22, 31) + 1)
-                  * ( b(ebx, 12, 21) + 1)
-                  * (b(ebx, 0, 11) + 1)
-                  * (ecx + 1));
-    printf("L3 cache_size %ldK\n", cache_size/1024);
-
+    printf("L3 cache_size %ldK\n", GETCACHESIZE());
 }
