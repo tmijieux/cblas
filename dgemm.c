@@ -57,6 +57,19 @@ DEFINE_DGEMM(dgemm_fast_sequential)
                 : ddot_avxU_256(K, A+i*lda, 1, B+j*ldb, 1);
 }
 
+
+DEFINE_DGEMM(dgemm_fast_sequential_beta)
+{
+    DGEMM_CHECK_PARAMS;
+
+    for (int j = 0; j < N; ++j)
+        for (int i = 0; i < M; ++i)
+            C[j*ldc+i] = beta * C[j*ldc+i] +
+                ((((long)(A+i*lda) & 31) == 0) && (((long)(B+j*ldb) & 31) == 0))
+                ? ddot_avx_256(K, A+i*lda, 1, B+j*ldb, 1)
+                : ddot_avxU_256(K, A+i*lda, 1, B+j*ldb, 1);
+}
+
 DEFINE_DGEMM(dgemm_OMP)
 {
     DGEMM_CHECK_PARAMS;

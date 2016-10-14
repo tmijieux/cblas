@@ -201,7 +201,7 @@ static void benches(void)
     BENCH(dgemm, dgemm_OMP);
     BENCH(dgemm, dgemm_fast_sequential);
     BENCH(dgemm, dgemm_fast_OMP);
-    
+
     #ifdef USE_MKL
     BENCH(dgemm, cblas_dgemm);
     BENCH(ddot, cblas_ddot);
