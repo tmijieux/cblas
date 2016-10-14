@@ -100,6 +100,7 @@ DEFINE_DDOT(ddot_avx_256_fma)
     double *f = (double*)&c;
     return f[0]+f[1]+f[2]+f[3]+s;
     #else
+    DDOT_UNUSED_PARAMS;
     fprintf(stderr, "FMA not supported!!");
     return 0.0;
     #endif
