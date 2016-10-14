@@ -57,6 +57,18 @@ DEFINE_DGEMM(dgemm_fast_sequential)
                 : ddot_avxU_256(K, A+i*lda, 1, B+j*ldb, 1);
 }
 
+DEFINE_DGEMM(dgemm_OMP)
+{
+    DGEMM_CHECK_PARAMS;
+
+    #pragma omp parallel for schedule(static) collapse(2)
+    for (int j = 0; j < N; ++j)
+        for (int i = 0; i < M; ++i) {
+            C[j*ldc+i] = 0.0;
+            for (int k = 0; k < K; ++k)
+                C[j*ldc+i] += A[i*lda+k] * B[j*ldb+k];
+        }
+}
 
 DEFINE_DGEMM(dgemm_fast_OMP)
 {
