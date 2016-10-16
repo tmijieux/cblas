@@ -17,11 +17,11 @@ DEFINE_DGEMM(dgemm_scalar_Fatima_Zahra)
 {
     DGEMM_CHECK_PARAMS;
 
-    for (int i=0; i<M; i++)
-	for (int j=0; j<N; j++) {
+    for (int i = 0; i < M; i++)
+	for (int j = 0; j < N; j++) {
             C[i+j*ldc] = 0.0;
-            for (int k=0; k<K; k++)
-                C[i+j*ldc]=C[i+j*ldc]+A[k+i*lda]*B[k+j*ldb];
+            for (int k = 0; k < K; k++)
+                C[i+j*ldc] += A[k+i*lda] * B[k+j*ldb];
 	}
 }
 
@@ -53,7 +53,7 @@ DEFINE_DGEMM(dgemm_fast_sequential)
     for (int j = 0; j < N; ++j)
         for (int i = 0; i < M; ++i)
             C[j*ldc+i] =
-	      (IS_ALIGNED(A+i*lda, 32) && IS_ALIGNED(B+j*ldb, 32))
+                (IS_ALIGNED(A+i*lda, 32) && IS_ALIGNED(B+j*ldb, 32))
                 ? ddot_avx_256(K, A+i*lda, 1, B+j*ldb, 1)
                 : ddot_avxU_256(K, A+i*lda, 1, B+j*ldb, 1);
 }
@@ -61,16 +61,16 @@ DEFINE_DGEMM(dgemm_fast_sequential)
 
 DEFINE_DGEMM(dgemm_fast_sequential_beta)
 {
-  (void) Order;
-  (void) TransA;
-  (void) TransB;
-  (void) alpha;
+    (void) Order;
+    (void) TransA;
+    (void) TransB;
+    (void) alpha;
     for (int j = 0; j < N; ++j)
         for (int i = 0; i < M; ++i)
             C[j*ldc+i] = beta * C[j*ldc+i]
-	      + ((IS_ALIGNED(A+i*lda, 32) && IS_ALIGNED(B+j*ldb, 32))
-		 ? ddot_avx_256(K, A+i*lda, 1, B+j*ldb, 1)
-		 : ddot_avxU_256(K, A+i*lda, 1, B+j*ldb, 1));
+                + ((IS_ALIGNED(A+i*lda, 32) && IS_ALIGNED(B+j*ldb, 32))
+                   ? ddot_avx_256(K, A+i*lda, 1, B+j*ldb, 1)
+                   : ddot_avxU_256(K, A+i*lda, 1, B+j*ldb, 1));
 }
 
 DEFINE_DGEMM(dgemm_OMP)
@@ -94,7 +94,7 @@ DEFINE_DGEMM(dgemm_fast_OMP)
     for (int j = 0; j < N; ++j)
         for (int i = 0; i < M; ++i)
             C[j*ldc+i] =
-                ((((long)(A+i*lda) & 31) == 0) && (((long)(B+j*ldb) & 31) == 0))
+                (IS_ALIGNED(A+i*lda, 32) && IS_ALIGNED(B+j*ldb, 32))
                 ? ddot_avx_256(K, A+i*lda, 1, B+j*ldb, 1)
                 : ddot_avxU_256(K, A+i*lda, 1, B+j*ldb, 1);
 }
@@ -103,11 +103,11 @@ DEFINE_DGEMM(dgemm_i)
 {
     DGEMM_CHECK_PARAMS;
 
-    for (int i=0; i<M; i++)
-	for (int j=0; j<N; j++) {
-            C[i+j*ldc]=0;
-            for (int k=0; k<K; k++)
-                C[i+j*ldc]=C[i+j*ldc]+A[k+i*lda]*B[k+j*ldb];
+    for (int i = 0; i < M; i++)
+	for (int j = 0; j < N; j++) {
+            C[i+j*ldc] = 0.0;
+            for (int k = 0; k < K; k++)
+                C[i+j*ldc] += A[k+i*lda] * B[k+j*ldb];
 	}
 }
 
@@ -115,62 +115,63 @@ DEFINE_DGEMM(dgemm_j)
 {
     DGEMM_CHECK_PARAMS;
 
-    for (int j=0; j<N; j++)
-        for (int i=0; i<M; i++){
-            C[i+j*ldc]=0;
-            for (int k=0; k<K; k++)
-                C[i+j*ldc]=C[i+j*ldc]+A[k+i*lda]*B[k+j*ldb];
+    for (int j = 0; j < N; j++)
+        for (int i = 0; i < M; i++){
+            C[i+j*ldc] = 0.0;
+            for (int k = 0; k < K; k++)
+                C[i+j*ldc] += A[k+i*lda] * B[k+j*ldb];
         }
 }
 
 DEFINE_DGEMM(dgemm_k)
 {
     DGEMM_CHECK_PARAMS;
-    for (int j=0; j<N; j++)
-        for (int i=0; i<M; i++)
-	  C[i+j*ldc]=0.0;
+    for (int j = 0; j < N; j++)
+        for (int i = 0; i < M; i++)
+            C[i+j*ldc] = 0.0;
 
-    for (int k=0; k<K; k++)
-        for (int j=0;j<N; j++)
-            for (int i=0; i<M; i++)
-                C[i+j*ldc]=C[i+j*ldc]+A[k+i*lda]*B[k+j*ldb];
+    for (int k = 0; k < K; k++)
+        for (int j = 0; j < N; j++)
+            for (int i = 0; i < M; i++)
+                C[i+j*ldc] += A[k+i*lda] * B[k+j*ldb];
 }
 
 DEFINE_DGEMM(dgemm_block)
 {
-  (void) alpha;
+    (void) alpha;
 
 
-  int tb=8;
-  int n=N/8, m=M/8;
-  for (int j=0;j<m; j++)
-    for (int i=0; i<n; i++) {
-      double local_beta = beta;
-      for (int k=0;k<m; k++) {
-	dgemm_fast_sequential_beta(Order,TransA,TransB,
-				   tb,tb,tb,
-				   1.0,&A[k*tb+i*tb*lda],lda,
-				   &B[k*tb+j*tb*ldb],ldb,
-				   local_beta,&C[i*tb+j*tb*ldc],ldc);
-	local_beta = 1.0;
-      }
-    }
-  n=N%8;
-  m=M%8;
+    int tb = 8;
+    int n = N/8, m = M/8;
+    for (int j=0;j<m; j++)
+        for (int i=0; i<n; i++) {
+            double local_beta = beta;
+            for (int k = 0; k < m; k++) {
+                dgemm_fast_sequential_beta(Order,TransA,TransB,
+                                           tb,tb,tb,
+                                           1.0,&A[k*tb+i*tb*lda],lda,
+                                           &B[k*tb+j*tb*ldb],ldb,
+                                           local_beta,&C[i*tb+j*tb*ldc],ldc);
+                local_beta = 1.0;
+            }
+        }
+    n = N%8;
+    m = M%8;
 
-  for (int j=0;j<N; j++)
-    for (int i=M-m; i<M; i++) {
-      C[i+j*ldc]=0;
-      for (int k=0; k<K; k++)
-      	C[i+j*ldc]=C[i+j*ldc]+A[k+i*lda]*B[k+j*ldb];
+    for (int j = 0;j < N; j++)
+        for (int i = M-m; i < M; i++) {
+            C[i+j*ldc] = 0;
+            for (int k = 0; k < K; k++)
+                C[i+j*ldc] += A[k+i*lda] * B[k+j*ldb];
 
-    }
-  for (int j=M-m;j<M; j++)
-    for (int i=0; i<N; i++){
-      C[i+j*ldc]=0;
-      for (int k=0; k<K; k++)
-      	C[i+j*ldc]=C[i+j*ldc]+A[k+i*lda]*B[k+j*ldb];
-    }
+        }
+
+    for (int j = M-m; j < M; j++)
+        for (int i = 0; i < N; i++) {
+            C[i+j*ldc] = 0;
+            for (int k = 0; k < K; k++)
+                C[i+j*ldc] += A[k+i*lda] * B[k+j*ldb];
+        }
 
 }
 

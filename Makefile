@@ -1,11 +1,23 @@
-TARGET=./test_driver
-SRC=$(wildcard *.c) perf/perf.c
+TARGET=driver pcache
+driver_SRC= \
+	perf/perf.c \
+	daxpy.c \
+	ddot.c \
+	dgemm.c \
+	dgemv.c \
+	driver.c \
+	util.c
+
+pcache_SRC = \
+	pcache.c \
+	util.c 
+
 CFLAGS+=-Wall -Wextra -std=gnu99 -fopenmp -march=native
 LDFLAGS+=
 
 ifdef DEBUG
-CFLAGS+=-O0 -ggdb #-fsanitize=address -fsanitize=undefined
-LDFLAGS+= #-fsanitize=address -fsanitize=undefined
+CFLAGS+=-O0 -ggdb -fsanitize=address -fsanitize=undefined
+LDFLAGS+= -fsanitize=address -fsanitize=undefined
 else
 CFLAGS+=-O3 -funroll-loops 
 LDFLAGS+=
@@ -20,16 +32,16 @@ LDFLAGS+= -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a \
 	-ldl -lpthread -lm -fopenmp
 endif
 
-
-OBJ=$(SRC:.c=.o)
-DEP=$(SRC:.c=.d)
-
 all: $(TARGET)
 
 -include $(DEP)
 
-$(TARGET): $(SRC) Makefile
-	$(CC) $(SRC) -o $@ $(CFLAGS) $(LDFLAGS)
+driver: $(driver_SRC) Makefile
+	$(CC) $($@_SRC) -o $@ $(CFLAGS) $(LDFLAGS)
+
+pcache: $(pcache_SRC) Makefile
+	$(CC) $($@_SRC) -o $@ $(CFLAGS) $(LDFLAGS)
+
 
 # %.o: %.c
 # 	@$(CC) -MM $(CFLAGS) $*.c > $*.d

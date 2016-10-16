@@ -1,10 +1,18 @@
+#include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <stdint.h>
-#include <malloc.h>
+#include <string.h>
+#include <limits.h>
 #include <assert.h>
+#include <malloc.h>
 
 #include "util.h"
+#include "cblas.h"
+
+double *tdp_avx256_aligned_matrix_new(int m/*rows*/, int n/*columns*/)
+{
+    return tdp_matrix_new(UPPER_LD(m, 32), n);
+}
 
 /**
  * Pretty print the matrix 'mat'
@@ -69,10 +77,11 @@ void tdp_matrix_one(int m/*rows*/, int n/*columns*/,
  * Set the matrix' main elements to 'value'
  */
 void tdp_matrix_fill(int m/*rows*/, int n/*columns*/,
-                    double value, double *mat, int lda/*leading dimension*/)
+                     double value, double *mat, int lda/*leading dimension*/)
 {
-    for (int j = 0; j < m*n; ++j)
-        mat[j] = value;
+    for (int j = 0; j < m; ++j)
+        for (int i = 0; i < n; ++i)
+            mat[j*lda+i] = value;
 }
 
 /**
@@ -95,7 +104,6 @@ void tdp_matrix_3one(int m/*rows*/, int n/*columns*/,
     mat[(M-1)*lda+(M-2)] = v2;
     mat[(M-1)*lda+(M-1)] = v1;
 }
-
 
 /**
  * Return new zero'd vector
@@ -145,12 +153,12 @@ void tdp_vector_print(int m, double *v, FILE *out)
         fprintf(out, "%g\n", v[i]);
 }
 
-#define CACHE_SIZE 25600000
 void tdp_cache_garbage(void)
 {
-    uint64_t S = CACHE_SIZE*2;
+    uint64_t S = tdp_get_cache_size(3)*10;
+    double *a = memalign(64, S);
+
     uint64_t s = S;
-    double *a = memalign(32, S);
     while (s > 0) {
         int i = rand() % (S/sizeof *a);
         int k = rand() % (S/sizeof *a);
@@ -160,32 +168,48 @@ void tdp_cache_garbage(void)
     free(a);
 }
 
-#include <stdio.h>
-#include <limits.h>
-
-#define cpuid(a, b, c, d)                                       \
-    __asm__( "cpuid"                                            \
-             : "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx)       \
-             : "a"(a), "b"(b), "c"(c), "d"(d))
-
 #define b(val, base, end)                                       \
     ((val << (__WORDSIZE-end-1)) >> (__WORDSIZE-end+base-1))
 
-#define GETCACHESIZE(level)                     \
-    ({                                          \
-        uint64_t eax, ebx, ecx, edx;            \
-        cpuid(4, 0, level, 0);                  \
-        (((b(ebx, 22, 31) + 1)                  \
-          * ( b(ebx, 12, 21) + 1)               \
-          * (b(ebx, 0, 11) + 1)                 \
-          * (ecx + 1)) / 1024);                 \
+#define GET_CACHE_DETAILS(level_, ways_, partitions_, line_size_, sets_) \
+    do {                                                                \
+        uint64_t eax_, ebx_, ecx_, edx_;                                \
+        __asm__( "cpuid"                                                \
+                 : "=a"(eax_), "=b"(ebx_), "=c"(ecx_), "=d"(edx_)       \
+                 : "a"(4), "b"(0), "c"(level_), "d"(0));                \
+        ways_ = b(ebx_, 22, 31) + 1;                                    \
+        partitions_ = b(ebx_, 12, 21) + 1;                              \
+        line_size_ = b(ebx_, 0, 11) + 1;                                \
+        sets_ = ecx_ + 1;                                               \
+    }while(0)
+
+#define GETCACHESIZE(level_)                                            \
+    ({                                                                  \
+        uint64_t ways, partitions, line_size, sets;                     \
+        GET_CACHE_DETAILS(level_, ways, partitions, line_size, sets);   \
+        (ways * partitions * line_size * sets) / 1024;                  \
     })
+
+#define PRINT_CACHE_DETAILS(level_)                                     \
+    do {                                                                \
+        uint64_t ways, partitions, line_size, sets;                     \
+        GET_CACHE_DETAILS(level_, ways, partitions, line_size, sets);   \
+        printf("line size: %ld\n", line_size);                          \
+        printf("ways: %ld\n", ways);                                    \
+        printf("sets: %ld\n", sets);                                    \
+        printf("partitions: %ld\n\n", partitions);                      \
+    }while(0)
 
 void tdp_print_cache_size(void)
 {
     printf("L1 cache_size %ldK\n", GETCACHESIZE(1));
+    PRINT_CACHE_DETAILS(1);
+
     printf("L2 cache_size %ldK\n", GETCACHESIZE(2));
+    PRINT_CACHE_DETAILS(2);
+
     printf("L3 cache_size %ldK\n", GETCACHESIZE(3));
+    PRINT_CACHE_DETAILS(3);
 }
 
 uint64_t tdp_get_cache_size(int id)

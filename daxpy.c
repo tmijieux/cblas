@@ -9,19 +9,22 @@ DEFINE_DAXPY(daxpy_basic)
         Y[i*incY] += alpha * X[i*incX];
 }
 
-#define DAXPY_CHECK_PARAMS                      \
+#define DAXPY_CHECK_INC_1                       \
     do {                                        \
         assert( incX == 1 );                    \
         assert( incY == 1 );                    \
     }while(0)
 
+#define DAXPY_CHECK_ALIGNED_INPUT               \
+    do {                                        \
+        assert( IS_ALIGNED(X, 32) );            \
+        assert( IS_ALIGNED(Y, 32) );            \
+    }while(0)
 
 DEFINE_DAXPY(daxpy_avx256)
 {
-    DAXPY_CHECK_PARAMS;
-
-    assert( IS_ALIGNED(X, 32) );
-    assert( IS_ALIGNED(Y, 32) );
+    DAXPY_CHECK_INC_1;
+    DAXPY_CHECK_ALIGNED_INPUT;
 
     int n = N/4;
     int m = N%4;
@@ -33,8 +36,8 @@ DEFINE_DAXPY(daxpy_avx256)
     x = _mm256_setzero_pd();
 
     for (int i = 0; i < n; ++i) {
-        x = _mm256_loadu_pd(X+i*4);
-        y = _mm256_loadu_pd(Y+i*4);
+        x = _mm256_load_pd(X+i*4);
+        y = _mm256_load_pd(Y+i*4);
         #if __FMA__
         y = _mm256_fmadd_pd(a, x, y);
         #else
@@ -45,5 +48,3 @@ DEFINE_DAXPY(daxpy_avx256)
     for (int i = N-m-1; i < N; ++i)
         Y[i] += alpha * X[i];
 }
-
-

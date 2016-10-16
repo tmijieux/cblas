@@ -101,18 +101,19 @@ void bench_dgemm(cblas_dgemm_t dgemm)
 {
     for (int m = 100; m <= 1000; m += 50) {
         double *M1, *M2, *M3;
-        M1 = tdp_matrix_new(m, m);
-        M2 = tdp_matrix_new(m, m);
-        M3 = tdp_matrix_new(m, m);
+        M1 = tdp_avx256_aligned_matrix_new(m, m);
+        M2 = tdp_avx256_aligned_matrix_new(m, m);
+        M3 = tdp_avx256_aligned_matrix_new(m, m);
 
-        tdp_matrix_rand(m, m, M1, 42., DBL_MAX);
-        tdp_matrix_rand(m, m, M2, -37.0, 500.0);
+        int ld = UPPER_LD(m, 32);
+        tdp_matrix_rand(ld, m, M1, 42., DBL_MAX);
+        tdp_matrix_rand(ld, m, M2, -37.0, 500.0);
 
         tdp_cache_garbage();
         perf_t p1, p2;
         perf(&p1);
         dgemm(CblasColMajor, CblasTrans, CblasNoTrans,
-              m, m, m, 1.0, M1, m, M2, m, 0.0, M3, m);
+              m, m, m, 1.0, M1, ld, M2, ld, 0.0, M3, ld);
         perf(&p2);
 
         perf_diff(&p1, &p2);
@@ -157,7 +158,7 @@ void test_dgemm(cblas_dgemm_t dgemm)
 
 void test_square_dgemm(cblas_dgemm_t dgemm)
 {
-   int m = 3, n = 3, k = 3;
+    int m = 3, n = 3, k = 3;
     double A[k*m] ALIGNED(32);
     double B[k*n] ALIGNED(32);
     double C[m*n] ALIGNED(32);
@@ -187,29 +188,92 @@ void test_square_dgemm(cblas_dgemm_t dgemm)
 
 void test_big_square_dgemm(cblas_dgemm_t dgemm)
 {
-   int m = 35, n = 35, k = 35;
-   double *A = tdp_matrix_new(m, n);
-   double *B = tdp_matrix_new(m, n);
-   double *C = tdp_matrix_new(m, n);
-   double *D = tdp_matrix_new(m, n);
+    int m = 35, n = 35, k = 35;
+    double *A = tdp_matrix_new(m, n);
+    double *B = tdp_matrix_new(m, n);
+    double *C = tdp_matrix_new(m, n);
+    double *D = tdp_matrix_new(m, n);
 
-   tdp_matrix_one(m, n, 2.0, A, m);
-   tdp_matrix_fill(m, n, 42.0, B, m);
-   tdp_matrix_fill(m, n, 84.0, D, m);
+    tdp_matrix_one(m, n, 2.0, A, m);
+    tdp_matrix_fill(m, n, 42.0, B, m);
+    tdp_matrix_fill(m, n, 84.0, D, m);
 
     for (int i = 0; i < m*n; ++i)
         C[i] = (double) i;
 
     dgemm(CblasColMajor, CblasTrans, CblasNoTrans,
           m, n, k, 1.0, A, k, B, k, 0.0, C, m);
-    tdp_matrix_print(n,m,C,n,stdout);
     assert( memcmp(C, D, m*n*sizeof C[0]) == 0 );
 }
 
-#define TEST(type, symbol)                      \
-    do {                                        \
-        printf("Testing %s.\n", #symbol);       \
-        test_##type(symbol);                    \
+void bench_dgemv(cblas_dgemv_t dgemv)
+{
+    for (int m = 100; m <= 1000; m += 50) {
+        double *A, *X, *Y;
+        A = tdp_avx256_aligned_matrix_new(m, m);
+        X = tdp_vector_new(m);
+        Y = tdp_vector_new(m);
+
+        int ld = UPPER_LD(m, 32);
+        tdp_matrix_rand(ld, m, A, 42., DBL_MAX);
+        tdp_vector_rand(m, -37.0, 500.0, X);
+        tdp_vector_rand(m, -37.0, 500.0, Y);
+
+        tdp_cache_garbage();
+        perf_t p1, p2;
+        perf(&p1);
+        dgemv(CblasColMajor, CblasTrans, m, m, 1.0, A, ld, X, 1, 0.0, Y, 1);
+        perf(&p2);
+
+        perf_diff(&p1, &p2);
+        printf("m = %6d | ", m);
+        uint64_t nb_op = 2 * SQUARE(m);
+        printf("%8g Mflops | time(µs) = ", perf_mflops(&p2, nb_op));
+        perf_printmicro(&p2);
+
+        free(A); free(X); free(Y);
+    }
+}
+
+
+void test_dgemv(cblas_dgemv_t dgemv)
+{
+    int m = 10;
+    int ld = UPPER_LD(m, 32);
+    double *A, *X, *Y, *Z;
+
+    A = tdp_avx256_aligned_matrix_new(m, m);
+    tdp_matrix_one(m, m, 3.0, A, ld);
+
+    X = tdp_vector_new(m);
+    Y = tdp_vector_new(m);
+    Z = tdp_vector_new(m);
+
+    tdp_vector_one(m, 5.0, X);
+    tdp_vector_one(m, 7.0, Y);
+
+    dgemv(CblasColMajor, CblasTrans,
+          m, m, 1.0, A, ld, X, 1, 0.0, Y, 1);
+
+    tdp_vector_one(m, 15.0, Z);
+    assert ( memcmp(Z, Y, m*sizeof*Y) == 0 );
+
+    tdp_vector_one(m, 7.0, Y);
+    tdp_vector_one(m, 29.0, Z);
+    dgemv(CblasColMajor, CblasTrans,
+          m, m, 1.0, A, ld, X, 1, 2.0, Y, 1);
+
+    assert ( memcmp(Z, Y, m*sizeof*Y) == 0 );
+
+    free(A);
+    free(X); free(Y); free(Z);
+}
+
+
+#define TEST(type, symbol)                              \
+    do {                                                \
+        printf("Testing \"%s\" %s.\n", #type, #symbol); \
+        test_##type(symbol);                            \
     }while(0)
 
 #define BENCH(type, symbol)                     \
@@ -225,6 +289,7 @@ static void tests(void)
     test_matrix_allocate();
     test_matrix_one();
 
+    TEST(dgemv, dgemv_basic);
 
     TEST(ddot, ddot_basic_Thomas);
     TEST(ddot, ddot_basic_Fatima_Zahra);
@@ -251,6 +316,8 @@ static void tests(void)
 
 static void benches(void)
 {
+    BENCH(dgemv, dgemv_basic);
+
     BENCH(dgemm, dgemm_OMP);
     BENCH(dgemm, dgemm_fast_sequential);
     BENCH(dgemm, dgemm_fast_OMP);
@@ -280,8 +347,6 @@ int main(int argc, char **argv)
 {
     (void) argv;
     srand(time(NULL) + (long)&argc);
-
-    tdp_print_cache_size();
     tests();
     benches();
 
