@@ -11,6 +11,7 @@
 typedef DEFINE_DAXPY((*cblas_daxpy_t));
 
 DECLARE_DAXPY(daxpy_basic)
+DECLARE_DAXPY(daxpy_basic1)
 DECLARE_DAXPY(daxpy_avx256);
 
 #endif // TDP_DAXPY_H

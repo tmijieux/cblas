@@ -23,7 +23,6 @@ CFLAGS+=-O3 -funroll-loops
 LDFLAGS+=
 endif
 
-
 ifdef USE_MKL
 CFLAGS+=-DUSE_MKL=1
 LDFLAGS+= -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a \

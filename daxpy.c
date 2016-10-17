@@ -1,13 +1,6 @@
-#include <immintrin.h> //AVX
-#include <assert.h>
+#include "util.h"
 #include "cblas.h"
 #include "daxpy.h"
-
-DEFINE_DAXPY(daxpy_basic)
-{
-    for (int i = 0; i < N; ++i)
-        Y[i*incY] += alpha * X[i*incX];
-}
 
 #define DAXPY_CHECK_INC_1                       \
     do {                                        \
@@ -21,6 +14,20 @@ DEFINE_DAXPY(daxpy_basic)
         assert( IS_ALIGNED(Y, 32) );            \
     }while(0)
 
+DEFINE_DAXPY(daxpy_basic)
+{
+    for (int i = 0; i < N; ++i)
+        Y[i*incY] += alpha * X[i*incX];
+}
+
+DEFINE_DAXPY(daxpy_basic1)
+{
+    DAXPY_CHECK_INC_1;
+
+    for (int i = 0; i < N; ++i)
+        Y[i] += alpha * X[i];
+}
+
 DEFINE_DAXPY(daxpy_avx256)
 {
     DAXPY_CHECK_INC_1;
@@ -29,22 +36,15 @@ DEFINE_DAXPY(daxpy_avx256)
     int n = N/4;
     int m = N%4;
 
-    __m256d a, x, y;
-    double ALPHA[4] ALIGNED(32) = {alpha, alpha, alpha, alpha};
-    a = _mm256_load_pd(ALPHA);
-
-    x = _mm256_setzero_pd();
-
+    __m256d a = _mm256_broadcast_sd(&alpha);
     for (int i = 0; i < n; ++i) {
+        __m256d x, y;
         x = _mm256_load_pd(X+i*4);
         y = _mm256_load_pd(Y+i*4);
-        #if __FMA__
-        y = _mm256_fmadd_pd(a, x, y);
-        #else
-        y = _mm256_add_pd(y, _mm256_mul_pd(a, x));
-        #endif
+        y = MM256_FMADD_PD(a, x, y);
         _mm256_store_pd(Y+i*4, y);
     }
-    for (int i = N-m-1; i < N; ++i)
+    for (int i = N-m; i < N; ++i)
         Y[i] += alpha * X[i];
 }
+

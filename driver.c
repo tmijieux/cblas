@@ -156,6 +156,24 @@ void test_dgemm(cblas_dgemm_t dgemm)
     assert( memcmp(C, D, sizeof C) == 0 );
 }
 
+void test_daxpy(cblas_daxpy_t daxpy)
+{
+    int m = 20;
+    double *A, *B, *C;
+
+    A = tdp_vector_new(m);
+    B = tdp_vector_new(m);
+    C = tdp_vector_new(m);
+
+    tdp_vector_one(m, 33.0, A);
+    tdp_vector_zero(m, B);
+
+    tdp_vector_one(m, 99.0, C);
+
+    daxpy(m, 3.0, A, 1, B, 1);
+    assert( memcmp(B, C, m*sizeof C[0]) == 0 );
+}
+
 void test_square_dgemm(cblas_dgemm_t dgemm)
 {
     int m = 3, n = 3, k = 3;
@@ -184,7 +202,6 @@ void test_square_dgemm(cblas_dgemm_t dgemm)
     tdp_matrix_print(n,m,C,n,stdout);
     assert( memcmp(C, D, sizeof C) == 0 );
 }
-
 
 void test_big_square_dgemm(cblas_dgemm_t dgemm)
 {
@@ -289,14 +306,16 @@ static void tests(void)
     test_matrix_allocate();
     test_matrix_one();
 
+    TEST(daxpy, daxpy_basic);
+    TEST(daxpy, daxpy_basic1);
+    TEST(daxpy, daxpy_avx256);
+
     TEST(dgemv, dgemv_basic);
+    TEST(dgemv, dgemv_avx);
 
     TEST(ddot, ddot_basic_Thomas);
     TEST(ddot, ddot_basic_Fatima_Zahra);
     TEST(ddot, ddot_avx_256);
-    #ifdef __FMA__
-    TEST(ddot, ddot_avx_256_fma);
-    #endif
 
     TEST(dgemm, dgemm_scalar_Fatima_Zahra);
     TEST(dgemm, dgemm_scalar_Thomas);
@@ -317,6 +336,7 @@ static void tests(void)
 static void benches(void)
 {
     BENCH(dgemv, dgemv_basic);
+    BENCH(dgemv, dgemv_avx);
 
     BENCH(dgemm, dgemm_OMP);
     BENCH(dgemm, dgemm_fast_sequential);
@@ -328,9 +348,6 @@ static void benches(void)
     #endif
 
     BENCH(ddot, ddot_avx_256);
-    #ifdef __FMA__
-    BENCH(ddot, ddot_avx_256_fma);
-    #endif
 
     BENCH(ddot, ddot_basic_Thomas);
     BENCH(ddot, ddot_basic_Fatima_Zahra);

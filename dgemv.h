@@ -34,6 +34,7 @@
 
 typedef DEFINE_DGEMV((*cblas_dgemv_t));
 
+DECLARE_DGEMV(dgemv_avx);
 DECLARE_DGEMV(dgemv_basic);
 
 #endif // TDP_DGEMV_H

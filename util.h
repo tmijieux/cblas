@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <math.h>
+#include <immintrin.h> //AVX
+#include <assert.h>
 
 #ifndef min
 #define min(x, y) ((x) < (y) ? (x) : (y))
@@ -29,6 +31,11 @@
 #endif
 #define CUBE(X_) ((X_)*(X_)*(X_))
 
+#ifdef __FMA__
+#define MM256_FMADD_PD(a, b, c) _mm256_fmadd_pd(a, b, c)
+#else
+#define MM256_FMADD_PD(a, b, c) _mm256_add_pd(_mm256_mul_pd(a, b), c)
+#endif
 
 double *tdp_matrix_new(int m/*rows*/, int n/*columns*/);
 double *tdp_avx256_aligned_matrix_new(int m/*rows*/, int n/*columns*/);
@@ -36,7 +43,7 @@ void tdp_matrix_zero(int m/*rows*/, int n/*columns*/, double *mat);
 void tdp_matrix_one(int m/*row*/, int n/*column*/,
                     double value, double *mat, int lda/*leading dimension*/);
 void tdp_matrix_fill(int m/*row*/, int n/*column*/,
-                    double value, double *mat, int lda/*leading dimension*/);
+                     double value, double *mat, int lda/*leading dimension*/);
 
 void tdp_matrix_print(int m/*row*/, int n/*column*/,
                       double *mat, int lda/*leading dimension*/,
