@@ -7,6 +7,7 @@
 #include <math.h>
 #include <immintrin.h> //AVX
 #include <assert.h>
+#include <omp.h>
 
 #ifndef min
 #define min(x, y) ((x) < (y) ? (x) : (y))

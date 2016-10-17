@@ -362,6 +362,10 @@ static void tests(void)
 
 static void benches(void)
 {
+    BENCH(dgemm, dgemm_block);
+    BENCH(dgemm, dgemm_block);
+    BENCH(dgemm, dgemm_fast_OMP);
+
     BENCH(daxpy, daxpy_basic);
     BENCH(daxpy, daxpy_basic1);
     BENCH(daxpy, daxpy_avx256);
@@ -371,7 +375,7 @@ static void benches(void)
 
     BENCH(dgemm, dgemm_OMP);
     BENCH(dgemm, dgemm_fast_sequential);
-    BENCH(dgemm, dgemm_fast_OMP);
+
 
     #ifdef USE_MKL
     BENCH(dgemm, cblas_dgemm);
@@ -382,6 +386,7 @@ static void benches(void)
 
     BENCH(ddot, ddot_basic_Thomas);
     BENCH(ddot, ddot_basic_Fatima_Zahra);
+
 
     BENCH(dgemm, dgemm_scalar_Fatima_Zahra);
     BENCH(dgemm, dgemm_scalar_Thomas);

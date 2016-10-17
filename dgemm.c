@@ -1,8 +1,7 @@
-#include <assert.h>
 
+#include "util.h"
 #include "cblas.h"
-#include "dgemm.h"
-#include "ddot.h"
+
 
 #define DGEMM_CHECK_PARAMS                      \
     do {                                        \
@@ -139,40 +138,50 @@ DEFINE_DGEMM(dgemm_k)
 DEFINE_DGEMM(dgemm_block)
 {
     (void) alpha;
+    int n, m, tb;
 
+    #pragma omp parallel private(n, m) shared(tb)
+    {
+        #pragma omp single
+        tb = N/omp_get_num_threads();
 
-    int tb = 8;
-    int n = N/8, m = M/8;
-    for (int j=0;j<m; j++)
-        for (int i=0; i<n; i++) {
-            double local_beta = beta;
-            for (int k = 0; k < m; k++) {
-                dgemm_fast_sequential_beta(Order,TransA,TransB,
-                                           tb,tb,tb,
-                                           1.0,&A[k*tb+i*tb*lda],lda,
-                                           &B[k*tb+j*tb*ldb],ldb,
-                                           local_beta,&C[i*tb+j*tb*ldc],ldc);
-                local_beta = 1.0;
+        #pragma omp barrier
+
+        n = N/tb;
+        m = M/tb;
+
+        #pragma omp for schedule(static) collapse(2)
+        for (int j=0;j<m; j++) {
+            for (int i=0; i<n; i++) {
+                double local_beta = beta;
+                for (int k = 0; k < m; k++) {
+                    dgemm_fast_sequential_beta(Order,TransA,TransB,
+                                               tb,tb,tb,
+                                               1.0,&A[k*tb+i*tb*lda],lda,
+                                               &B[k*tb+j*tb*ldb],ldb,
+                                               local_beta,&C[i*tb+j*tb*ldc],ldc);
+                    local_beta = 1.0;
+                }
             }
         }
-    n = N%8;
-    m = M%8;
+    } // parallel region end
+
+    n = N%tb;
+    m = M%tb;
 
     for (int j = 0;j < N; j++)
-        for (int i = M-m; i < M; i++) {
-            C[i+j*ldc] = 0;
-            for (int k = 0; k < K; k++)
-                C[i+j*ldc] += A[k+i*lda] * B[k+j*ldb];
-
-        }
+        for (int i = M-m; i < M; i++)
+            C[j*ldc+i] = beta * C[j*ldc+i]
+                + ((IS_ALIGNED(A+i*lda, 32) && IS_ALIGNED(B+j*ldb, 32))
+                   ? ddot_avx_256(K, A+i*lda, 1, B+j*ldb, 1)
+                   : ddot_avxU_256(K, A+i*lda, 1, B+j*ldb, 1));
 
     for (int j = M-m; j < M; j++)
-        for (int i = 0; i < N; i++) {
-            C[i+j*ldc] = 0;
-            for (int k = 0; k < K; k++)
-                C[i+j*ldc] += A[k+i*lda] * B[k+j*ldb];
-        }
-
+        for (int i = 0; i < N; i++)
+            C[j*ldc+i] = beta * C[j*ldc+i]
+                + ((IS_ALIGNED(A+i*lda, 32) && IS_ALIGNED(B+j*ldb, 32))
+                   ? ddot_avx_256(K, A+i*lda, 1, B+j*ldb, 1)
+                   : ddot_avxU_256(K, A+i*lda, 1, B+j*ldb, 1));
 }
 
 
