@@ -97,6 +97,34 @@ void bench_ddot(cblas_ddot_t ddot)
     }
 }
 
+void bench_daxpy(cblas_daxpy_t daxpy)
+{
+    int m = 50;
+    while ( m < 1000000 ) {
+        double *v1, *v2;
+        v1 = tdp_vector_new(m);
+        v2 = tdp_vector_new(m);
+        tdp_vector_rand(m, 42., DBL_MAX, v1);
+        tdp_vector_rand(m, -37.0, 500.0, v2);
+
+        tdp_cache_garbage();
+        perf_t p1, p2;
+        perf(&p1);
+        for (int i = 0; i < NB_ITER; ++i)
+            daxpy(m, 1.0, v1, 1, v2, 1);
+        perf(&p2);
+
+        perf_diff(&p1, &p2);
+        printf("m = %6d | ", m);
+        uint64_t nb_op = 2 * m * NB_ITER;
+        printf("%10g Mflops | time(µs) = ", perf_mflops(&p2, nb_op));
+        perf_printmicro(&p2);
+
+        free(v1); free(v2);
+        m *= 1.25;
+    }
+}
+
 void bench_dgemm(cblas_dgemm_t dgemm)
 {
     for (int m = 100; m <= 1000; m += 50) {
@@ -252,7 +280,6 @@ void bench_dgemv(cblas_dgemv_t dgemv)
     }
 }
 
-
 void test_dgemv(cblas_dgemv_t dgemv)
 {
     int m = 10;
@@ -335,6 +362,10 @@ static void tests(void)
 
 static void benches(void)
 {
+    BENCH(daxpy, daxpy_basic);
+    BENCH(daxpy, daxpy_basic1);
+    BENCH(daxpy, daxpy_avx256);
+
     BENCH(dgemv, dgemv_basic);
     BENCH(dgemv, dgemv_avx);
 
