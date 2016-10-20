@@ -135,18 +135,15 @@ DEFINE_DGEMM(dgemm_k)
                 C[i+j*ldc] += A[k+i*lda] * B[k+j*ldb];
 }
 
+
+
 DEFINE_DGEMM(dgemm_block)
 {
     (void) alpha;
-    int n, m, tb;
+    int n, m, tb=50;
 
     #pragma omp parallel private(n, m) shared(tb)
     {
-        #pragma omp single
-        tb = N/omp_get_num_threads();
-
-        #pragma omp barrier
-
         n = N/tb;
         m = M/tb;
 
