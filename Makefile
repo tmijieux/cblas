@@ -12,8 +12,8 @@ pcache_SRC = \
 	pcache.c \
 	util.c 
 
-CFLAGS+=-Wall -Wextra -std=gnu99 -fopenmp -march=native
-LDFLAGS+=
+CFLAGS+=-Wall -Wextra -std=gnu99 -fopenmp -march=native 
+LDFLAGS+=-lm
 
 ifdef DEBUG
 CFLAGS+=-O0 -ggdb -fsanitize=address -fsanitize=undefined

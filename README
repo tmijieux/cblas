@@ -1,3 +1,6 @@
 to use "load_modules.sh" script
 run ". load_modules" (DOT SPACE load_modules)
 or "source load_modules"
+
+to compile with MKL:
+USE_MKL=1 make

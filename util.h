@@ -60,6 +60,6 @@ void tdp_vector_print(int m, double *v, FILE *out);
 
 void tdp_print_cache_size(void);
 uint64_t tdp_get_cache_size(int id);
-void tdp_cache_garbage(void);
+double *tdp_cache_garbage(void);
 
 #endif // TDP_UTIL_H

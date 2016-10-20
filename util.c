@@ -153,19 +153,19 @@ void tdp_vector_print(int m, double *v, FILE *out)
         fprintf(out, "%g\n", v[i]);
 }
 
-void tdp_cache_garbage(void)
+double *tdp_cache_garbage(void)
 {
     uint64_t S = tdp_get_cache_size(3)*10;
     double *a = memalign(64, S);
-
-    uint64_t s = S;
+    
+    uint64_t s = S * (((uint64_t)log(S))+1);
     while (s > 0) {
         int i = rand() % (S/sizeof *a);
         int k = rand() % (S/sizeof *a);
         a[i] = a[k];
         s -= sizeof *a;
     }
-    free(a);
+    return a;
 }
 
 #define b(val, base, end)                                       \
